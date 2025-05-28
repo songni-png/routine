@@ -49,7 +49,7 @@ def load_data():
     return pd.read_csv(DATA_FILE, encoding="utf-8")
 
 def load_weather_data():
-    return pd.read_csv(WEATHER_DATA_FILE, encoding="utf-8"
+    return pd.read_csv(WEATHER_DATA_FILE, encoding="utf-8")
 # 데이터 로드 및 병합 (초기 1회)
 place_df = load_data()
 weather_df = load_weather_data()
