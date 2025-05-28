@@ -55,8 +55,11 @@ def load_data():
 
 def load_weather_data():
     return pd.read_csv(WEATHER_DATA_FILE, encoding="cp949")
-place_df = place_df.merge(weather_df, on=["NAME", "LAT", "LON"], how="left")
 
+# 데이터 로드 및 병합
+place_df = load_data()
+weather_df = load_weather_data()
+place_df = place_df.merge(weather_df, on=["NAME", "LAT", "LON"], how="left")
 
 # 거리 계산 및 반경 2km 필터
 radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
