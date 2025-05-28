@@ -41,8 +41,8 @@ else:
     lat, lon = None, None
 
 # 데이터 파일 경로 설정
-DATA_FILE = r"C:\Users\soyoe\OneDrive\바탕 화면\홍익대학교\4학년\1학기\시스템분석\Project Data\tag_coordi_.csv"
-WEATHER_DATA_FILE = r"C:\Users\soyoe\OneDrive\바탕 화면\홍익대학교\4학년\1학기\시스템분석\Project Data\장소별_날씨_결과.csv"
+DATA_FILE = r"..\routine\tag_coordi_.csv"
+WEATHER_DATA_FILE = r"..\routine\장소별_날씨_결과.csv"
 
 # 데이터 로드 함수
 def load_data():
