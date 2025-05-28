@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
 import json
+import os
 from geopy.distance import geodesic
 
 
@@ -41,18 +42,19 @@ else:
     lat, lon = None, None
 
 # 데이터 파일 경로 설정
-DATA_FILE = r"..\routine\tag_coordi_.csv"
-WEATHER_DATA_FILE = r"..\routine\장소별_날씨_결과.csv"
+# 현재 실행 중인 파일의 디렉터리 가져오기
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# 데이터 로드 함수
+# CSV 파일 경로 설정
+DATA_FILE = os.path.join(current_dir, "tag_coordi_.csv")
+WEATHER_DATA_FILE = os.path.join(current_dir, "장소별_날씨_결과.csv")
+
+# 데이터 로드 및 병합 (초기 1회)
 def load_data():
-    return pd.read_csv(DATA_FILE, encoding="utf-8")
+    return pd.read_csv(DATA_FILE, encoding="cp949")
 
 def load_weather_data():
-    return pd.read_csv(WEATHER_DATA_FILE, encoding="utf-8")
-# 데이터 로드 및 병합 (초기 1회)
-place_df = load_data()
-weather_df = load_weather_data()
+    return pd.read_csv(WEATHER_DATA_FILE, encoding="cp949")
 place_df = place_df.merge(weather_df, on=["NAME", "LAT", "LON"], how="left")
 
 
