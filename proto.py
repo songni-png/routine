@@ -15,6 +15,11 @@ st.set_page_config(page_title="회복 루틴 추천기", page_icon="🧘", layou
 st.title("🧘 회복이 필요한 날을 위한 맞춤 루틴 추천기")
 st.markdown(f"⏰ 현재 시간: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
+activity = st.radio("오늘 얼마나 활동하셨나요?", ["많이 움직였어요", "적당히 움직였어요", "거의 안 움직였어요"])
+social = st.radio("얼마나 사람을 만나셨나요?", ["많은 사람을 만났어요", "혼자 있었어요"])
+tag = st.selectbox("원하는 회복 태그를 골라주세요", ["힐링", "에너지","감정 정화","감정 자극", "집중력", "안정"])
+
+
 # ▶ 사용자 위치 요청 (JS + Streamlit)
 loc = streamlit_js_eval(
     js_expressions="""
