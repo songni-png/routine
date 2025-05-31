@@ -36,7 +36,7 @@ else:
     lat, lon = None, None
 
 # ▶ 반경 설정
-radius = st.slider("추천 반경 (km)", 1.0, 500.0, 2.5, step=0.1)
+radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
 
 # ▶ 데이터 불러오기 (cp949 인코딩 사용)
 current_dir = os.path.dirname(os.path.abspath(__file__))
