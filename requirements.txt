@@ -10,3 +10,5 @@ streamlit-js-eval
 openpyxl
 pyarrow
 geopy
+requests
+
