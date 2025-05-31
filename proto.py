@@ -2,11 +2,12 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
-import json
+import requests
 import os
 from geopy.distance import geodesic
 
-
+# ▶ OpenWeatherMap API 키
+API_KEY = "db993432d1b5f597ea03fd182d005ce9"
 
 st.set_page_config(page_title="회복 루틴 추천기", page_icon="🧘", layout="centered")
 
@@ -42,80 +43,98 @@ else:
     lat, lon = None, None
 
 # 데이터 파일 경로 설정
-# 현재 실행 중인 파일의 디렉터리 가져오기
 current_dir = os.path.dirname(os.path.abspath(__file__))
+PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
 
-# CSV 파일 경로 설정
-DATA_FILE = os.path.join(current_dir, "tag_coordi_.csv")
-WEATHER_DATA_FILE = os.path.join(current_dir, "장소별_날씨_결과.csv")
-
-# 데이터 로드 및 병합 (초기 1회)
+# 데이터 로드
 def load_data():
-    return pd.read_csv(DATA_FILE, encoding="cp949")
+    df = pd.read_csv(PLACE_FILE, encoding="cp949")
+    df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
+    df["LAT"] = df["LAT"].astype(float)
+    df["LON"] = df["LON"].astype(float)
+    return df
 
-def load_weather_data():
-    return pd.read_csv(WEATHER_DATA_FILE, encoding="cp949")
+df = load_data()
 
-# 데이터 로드 및 병합
-place_df = load_data()
-weather_df = load_weather_data()
-place_df = place_df.merge(weather_df, on=["NAME", "LAT", "LON"], how="left")
+# 거리 계산 함수
+def compute_distance(row):
+    return geodesic((lat, lon), (row["LAT"], row["LON"])).km if lat and lon else None
 
-# 거리 계산 및 반경 2km 필터
+# 날씨 정보 가져오기 함수
+def get_weather(lat, lon):
+    try:
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "appid": API_KEY,
+            "units": "metric",
+            "lang": "kr"
+        }
+        res = requests.get(url, params=params)
+        data = res.json()
+        return {
+            "weather": data["weather"][0]["description"],
+            "temp": data["main"]["temp"],
+            "humidity": data["main"]["humidity"]
+        }
+    except Exception:
+        return {"weather": "에러", "temp": "-", "humidity": "-"}
+
+# 반경 설정
 radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
 st.session_state.radius_value = radius
 
-# 4. 루틴 추천 실행
-if st.button("회복 루틴 추천받기"):
-    with st.spinner("당신에게 맞는 장소를 찾는 중입니다..."):
-        df = place_df.copy()
-        
-        # 필수 열이 있는지 체크 및 결측 제거
-        df = df.dropna(subset=["LAT", "LON"])
-        df["LAT"] = df["LAT"].astype(float)
-        df["LON"] = df["LON"].astype(float)
+if lat and lon:
+    df["DIST_KM"] = df.apply(compute_distance, axis=1)
+    nearby_df = df[df["DIST_KM"] <= radius]
+else:
+    nearby_df = df
 
-        # 태그 필터링
-        df = df[df["TAG"].notna() & df["TAG"].str.contains(tag)].head(5)
+# ▶ 추천 실행
+if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
+    with st.spinner("추천 장소를 찾는 중입니다..."):
+        sampled_df = nearby_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1))
 
-        # 거리 계산 함수 정의
-        def compute_distance(row):
-            try:
-                return geodesic((lat, lon), (row["LAT"], row["LON"])).km
-            except:
-                return None
-
-        if lat and lon:
-            df["DIST_KM"] = df.apply(compute_distance, axis=1)
-            df = df.dropna(subset=["DIST_KM"])
-            nearby_df = df[df["DIST_KM"] <= radius].sort_values(by="DIST_KM")
+        if sampled_df.empty:
+            st.warning("❌ 조건에 맞는 장소가 없습니다.")
         else:
-            nearby_df = df
+            # 현재 위치 날씨 표시
+            weather = get_weather(lat, lon)
+            st.markdown(f"### 🌤️ 현재 위치 날씨")
+            st.write(f"- 날씨: {weather['weather']}")
+            st.write(f"- 기온: {weather['temp']}°C")
+            st.write(f"- 습도: {weather['humidity']}%")
+            st.markdown("---")
 
-        # 추천 결과 출력
-        st.markdown(f"## 📌 반경 {st.session_state.radius_value}km 이내 추천 장소")
-        if nearby_df.empty:
-            st.warning(f"조건에 맞는 장소가 반경 {st.session_state.radius_value}km 이내에 없습니다 😢")
-        else:
-            for _, row in nearby_df.iterrows():
-                st.markdown(f"### 🏞️ {row['NAME']}")
+            st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
+
+            for _, row in sampled_df.iterrows():
+                st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
                 st.markdown(f"- 📍 위치: {row['LOCATION']}")
-                st.markdown(f"- 🏷️ 태그: {row['TAG']}")
                 st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
+
+                # ▶ 상세 보기 버튼 및 클릭 로그 저장
+                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
+                    st.success(f"✅ '{row['NAME']}' 선택됨!")
+                    st.write(f"- 위치: {row['LOCATION']}")
+                    st.write(f"- 카테고리: {row['CATEGORY']}")
+                    st.write(f"- 거리: {row['DIST_KM']:.2f} km")
+
+                    log = {
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "name": row['NAME'],
+                        "category": row['CATEGORY'],
+                        "location": row['LOCATION'],
+                        "distance_km": round(row['DIST_KM'], 2)
+                    }
+                    pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
+
                 st.markdown("---")
 
-                # 장소별 날씨 정보 추가
-                st.markdown(f"🌤️ **{row['NAME']} 근처 날씨 정보**")
-                st.write(f"- 날씨 상태: {row.get('weather', '정보 없음')}")
-                st.write(f"- 기온: {row.get('temperature', '정보 없음')}°C")
-                st.write(f"- 습도: {row.get('humidity', '정보 없음')}%")
-                
-                st.markdown("---")
-                
-        
+            # 🗺 지도 표시
+            st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
-            # 지도 시각화
-            st.markdown("### 🗺️ 지도에서 추천 장소 보기")
-            map_df = nearby_df[["LAT", "LON"]].rename(columns={"LAT": "lat", "LON": "lon"})
-            st.map(map_df, use_container_width=True)
-
+# 첫 실행 대기
+else:
+    st.info("📌 아래 버튼을 눌러 추천 장소를 받아보세요.")
