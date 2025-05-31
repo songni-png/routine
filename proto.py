@@ -36,12 +36,13 @@ else:
     lat, lon = None, None
 
 # ▶ 반경 설정
-radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
+radius = st.slider("추천 반경 (km)", 1.0, 500.0, 2.5, step=0.1)
 
 # ▶ 데이터 불러오기 (cp949 인코딩 사용)
-PLACE_FILE = r"C:\Users\jkjk3\OneDrive\바탕 화면\장소_카테고리_최종분류.csv"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
 try:
-    df = pd.read_csv(PLACE_FILE, encoding="cp949", header=1)
+    df = pd.read_csv(PLACE_FILE, encoding="cp949")
     df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
     df["LAT"] = df["LAT"].astype(float)
     df["LON"] = df["LON"].astype(float)
@@ -124,7 +125,7 @@ if sampled_df is not None:
                 "location": row['LOCATION'],
                 "distance_km": round(row['DIST_KM'], 2)
             }
-            pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=0 os.path.exists("click_log.csv"))
+            pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
 
         st.markdown("---")
 
