@@ -42,14 +42,16 @@ radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
 # 데이터 파일 경로 설정
 current_dir = os.path.dirname(os.path.abspath(__file__))
 PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
-try:
-    df = pd.read_csv(PLACE_FILE, encoding="cp949", header=1)
+# 데이터 로드
+def load_data():
+    df = pd.read_csv(PLACE_FILE, encoding="cp949")
     df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
     df["LAT"] = df["LAT"].astype(float)
     df["LON"] = df["LON"].astype(float)
-except Exception as e:
-    st.error(f"❌ 장소 파일을 불러올 수 없습니다: {e}")
-    st.stop()
+    return df
+
+df = load_data()
+
 
 # ▶ 거리 계산 함수
 def compute_distance(row):
