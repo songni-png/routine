@@ -139,6 +139,6 @@ if os.path.exists("click_log.csv"):
     log_df = pd.read_csv("click_log.csv")
     st.dataframe(log_df.tail(10))
     csv = log_df.to_csv(index=False).encode('utf-8-sig')
-    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="C:\Users\soyoe\OneDrive\바탕 화면\홍익대학교\4학년\1학기\시스템분석\Project_code\click_log.csv", mime="text/csv")
+    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="../홍익대학교/4학년/1학기/시스템분석/Project_code/click_log.csv", mime="text/csv")
 else:
     st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
