@@ -11,4 +11,5 @@ openpyxl
 pyarrow
 geopy
 requests
-
+joblib
+scikit-learn
