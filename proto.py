@@ -34,8 +34,7 @@ encoders = joblib.load(ENCODER_PATH)
 # ▶ 페이지 설정
 st.set_page_config(page_title="회복 루틴 추천기", page_icon="🧘", layout="centered")
 st.title("🧘 회복이 필요한 날을 위한 맞춤 루틴 추천기")
-now = datetime.utcnow()
-st.markdown(f"⏰ 현재 시간 (UTC): {now.strftime('%Y-%m-%d %H:%M')}")
+now = datetime.now() st.markdown(f"⏰ 현재 시간: {now.strftime('%Y-%m-%d %H:%M')}")
 
 # ▶ 사용자 입력
 age_group = st.selectbox("나이대는 어떻게 되시나요?", ["20대", "30대", "40대", "50대 이상"])
