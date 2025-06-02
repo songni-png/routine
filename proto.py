@@ -163,25 +163,24 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
                 st.markdown(f"- 🏷️ 태그: {row['TAG']}")
                 st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
 
-                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
-            st.session_state["selected_place"] = row['NAME']
-            selected_place = row['NAME']
+                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}_{i}"):
+                    log = {
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "name": row['NAME'],
+                        "category": row['CATEGORY'],
+                        "location": row['LOCATION'],
+                        "distance_km": round(row['DIST_KM'], 2),
+                        "tag": predicted_label
+                    }
+                    pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
+                    st.success("✅ 클릭 기록 저장 완료")
 
-        if selected_place == row['NAME']:
-            
+                st.markdown("---")
 
-            log = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "name": row['NAME'],
-                "category": row['CATEGORY'],
-                "location": row['LOCATION'],
-                "distance_km": round(row['DIST_KM'], 2)
-            }
-            pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
+            st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
-        st.markdown("---")
-
-    st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+    except ValueError as ve:
+        st.error(f"⚠️ 예측 중 오류 발생: {ve}")
 
 # ▶ 클릭 로그 확인 및 다운로드
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
