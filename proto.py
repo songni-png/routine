@@ -76,4 +76,22 @@ if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
             st.markdown(f"- 🏷️ 태그: {row.get('TAG', '없음')}")
             st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
             st.markdown("---")
+            
+            log = { 
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "name": row['NAME'], "category": row['CATEGORY'], 
+                "location": row['LOCATION'], "distance_km": round(row['DIST_KM'], 2) } 
+            pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE)) 
+            st.markdown("---") 
+            
+            st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"})) 
 
+# ▶ 클릭 로그 확인 
+st.markdown("## 🗂️ 내가 클릭한 장소 기록") 
+if os.path.exists(CLICK_FILE): 
+    log_df = pd.read_csv(CLICK_FILE) 
+    st.dataframe(log_df.tail(10)) 
+    csv = log_df.to_csv(index=False).encode('utf-8-sig') 
+    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv") 
+else: 
+    st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
