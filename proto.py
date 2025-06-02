@@ -64,11 +64,10 @@ if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
         st.warning("❌ 조건에 맞는 장소가 없습니다.")
     else:
         sampled_df = nearby_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1)).reset_index(drop=True)
-        
+        st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
+
         # 🔍 지도 표시
         st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
-
-        st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
         
         for _, row in sampled_df.iterrows():
             st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
