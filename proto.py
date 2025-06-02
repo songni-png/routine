@@ -163,27 +163,32 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
                 st.markdown(f"- 🏷️ 태그: {row['TAG']}")
                 st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
 
-                # ▶ 상세 보기 버튼 및 클릭 로그 저장
                 if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
-                    st.success(f"✅ '{row['NAME']}' 선택됨!")
-                    st.write(f"- 위치: {row['LOCATION']}")
-                    st.write(f"- 카테고리: {row['CATEGORY']}")
-                    st.write(f"- 거리: {row['DIST_KM']:.2f} km")
+            st.session_state["selected_place"] = row['NAME']
+            selected_place = row['NAME']
 
-                    log = {
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "name": row['NAME'],
-                        "category": row['CATEGORY'],
-                        "location": row['LOCATION'],
-                        "distance_km": round(row['DIST_KM'], 2)
-                    }
-                    pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
+        if selected_place == row['NAME']:
+            
 
-                st.markdown("---")
+            log = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "name": row['NAME'],
+                "category": row['CATEGORY'],
+                "location": row['LOCATION'],
+                "distance_km": round(row['DIST_KM'], 2)
+            }
+            pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
 
-            # 🗺 지도 표시
-            st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+        st.markdown("---")
 
-# 첫 실행 대기
+    st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+
+# ▶ 클릭 로그 확인 및 다운로드
+st.markdown("## 🗂️ 내가 클릭한 장소 기록")
+if os.path.exists("click_log.csv"):
+    log_df = pd.read_csv("click_log.csv")
+    st.dataframe(log_df.tail(10))
+    csv = log_df.to_csv(index=False).encode('utf-8-sig')
+    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="../홍익대학교/4학년/1학기/시스템분석/Project_code/click_log.csv", mime="text/csv")
 else:
-    st.info("📌 아래 버튼을 눌러 추천 장소를 받아보세요.")
+    st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
