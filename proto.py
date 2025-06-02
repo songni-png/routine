@@ -1,47 +1,17 @@
 import streamlit as st
 import pandas as pd
-import joblib
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
-from geopy.distance import geodesic
 import requests
 import os
+from geopy.distance import geodesic
 
-
-# ▶ 설정
+# ▶ OpenWeatherMap API 키
 API_KEY = "db993432d1b5f597ea03fd182d005ce9"
 
-# ▶ 데이터 불러오기 (cp949 인코딩 사용)
-current_dir = os.path.dirname(os.path.abspath(__file__))
-PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
-MODEL_PATH = os.path.join(current_dir,"recovery_rf_model_v3.pkl")
-ENCODER_PATH = os.path.join(current_dir,"recovery_rf_encoders_v3.pkl")
-CLICK_FILE = r"C:\Users\soyoe\OneDrive\바탕 화면\홍익대학교\4학년\1학기\시스템분석\Project_code\click_log.csv"
+st.set_page_config(page_title="회복 루틴 추천기", page_icon="🧘", layout="centered")
 
-try:
-    df = pd.read_csv(PLACE_FILE, encoding="cp949")
-    df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
-    df["LAT"] = df["LAT"].astype(float)
-    df["LON"] = df["LON"].astype(float)
-except Exception as e:
-    st.error(f"❌ 장소 파일을 불러올 수 없습니다: {e}")
-    st.stop()
-
-# ▶ 모델 및 인코더 로드
-model = joblib.load(MODEL_PATH)
-encoders = joblib.load(ENCODER_PATH)
-
-# ▶ 페이지 설정
-st.set_page_config(page_title="회복 루틴 추천기", page_icon="🧘", layout="centered") 
-st.title("🧘 회복이 필요한 날을 위한 맞춤 루틴 추천기") 
-now = datetime.now() 
-st.markdown(f"⏰ 현재 시간: {now.strftime('%Y-%m-%d %H:%M')}")
-
-# ▶ 사용자 입력
-age_group = st.selectbox("나이대는 어떻게 되시나요?", ["20대", "30대", "40대", "50대 이상"])
-job_type = st.selectbox("어떤 직업이신가요?", ["학생", "회사원", "프리랜서"])
-
-# ▶ 위치 가져오기
+# 1. 위치 정보 가져오기 (비동기 Promise 방식)
 loc = streamlit_js_eval(
     js_expressions="""
     new Promise((resolve, reject) => {
@@ -51,43 +21,46 @@ loc = streamlit_js_eval(
         );
     })
     """,
-    key="get_location"
+    key="get_location_with_coords"
 )
 
+# 2. 사용자 UI
+st.title("🧘 회복이 필요한 날을 위한 맞춤 루틴 추천기")
+
+now = datetime.now().strftime("%Y-%m-%d %H:%M")
+st.markdown(f"⏰ 현재 시간: {now}")
+
+activity = st.radio("오늘 얼마나 활동하셨나요?", ["많이 움직였어요", "적당히 움직였어요", "거의 안 움직였어요"])
+social = st.radio("얼마나 사람을 만나셨나요?", ["많은 사람을 만났어요", "혼자 있었어요"])
+tag = st.selectbox("원하는 회복 태그를 골라주세요", ["힐링", "에너지","감정 정화","감정 자극", "집중력", "안정"])
+
+# 3. 위치 정보 출력
 if loc and isinstance(loc, dict) and "latitude" in loc:
     lat, lon = loc["latitude"], loc["longitude"]
     st.success(f"📍 현재 위치: 위도 {lat:.5f}, 경도 {lon:.5f}")
 else:
-    st.warning("📡 위치 권한이 허용되지 않았습니다.")
+    st.info("📡 위치 정보를 불러오는 중이거나, 위치 권한이 허용되지 않았습니다.")
     lat, lon = None, None
 
-# ▶ 반경 슬라이더
-radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
+# 데이터 파일 경로 설정
+current_dir = os.path.dirname(os.path.abspath(__file__))
+PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
 
-# ▶ 날씨 API 매핑 함수
-def map_weather(api_weather):
-    if api_weather in ["Clear"]:
-        return "맑음"
-    elif api_weather in ["Clouds"]:
-        return "흐림"
-    elif api_weather in ["Rain", "Drizzle", "Thunderstorm"]:
-        return "비"
-    else:
-        return "기타"
+# 데이터 로드
+def load_data():
+    df = pd.read_csv(PLACE_FILE, encoding="cp949")
+    df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
+    df["LAT"] = df["LAT"].astype(float)
+    df["LON"] = df["LON"].astype(float)
+    return df
 
-# ▶ 시간대 매핑 함수
-def map_time(hour):
-    if 6 <= hour < 12:
-        return "오전"
-    elif 12 <= hour < 18:
-        return "오후"
-    elif 18 <= hour < 22:
-        return "저녁"
-    else:
-        return "심야"
+df = load_data()
 
-# ▶ 날씨 API 요청
-@st.cache_data
+# 거리 계산 함수
+def compute_distance(row):
+    return geodesic((lat, lon), (row["LAT"], row["LON"])).km if lat and lon else None
+
+# 날씨 정보 가져오기 함수
 def get_weather(lat, lon):
     try:
         url = "https://api.openweathermap.org/data/2.5/weather"
@@ -100,94 +73,68 @@ def get_weather(lat, lon):
         }
         res = requests.get(url, params=params)
         data = res.json()
-        return data["weather"][0]["main"]
-    except:
-        return "Unknown"
+        return {
+            "weather": data["weather"][0]["description"],
+            "temp": data["main"]["temp"],
+            "humidity": data["main"]["humidity"]
+        }
+    except Exception:
+        return {"weather": "에러", "temp": "-", "humidity": "-"}
 
-# ▶ 장소 데이터 로딩
-try:
-    df = pd.read_csv(PLACE_FILE, encoding="cp949")
-    df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
-    df["LAT"] = df["LAT"].astype(float)
-    df["LON"] = df["LON"].astype(float)
-    df["TAG"] = df["TAG"].fillna("")
-except Exception as e:
-    st.error(f"❌ 장소 파일을 불러올 수 없습니다: {e}")
-    st.stop()
+# 반경 설정
+radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
+st.session_state.radius_value = radius
 
-# ▶ 거리 계산 함수
-def compute_distance(row):
-    return geodesic((lat, lon), (row["LAT"], row["LON"])).km if lat and lon else None
+if lat and lon:
+    df["DIST_KM"] = df.apply(compute_distance, axis=1)
+    nearby_df = df[df["DIST_KM"] <= radius]
+else:
+    nearby_df = df
 
-# ▶ 추천 버튼
-if st.button("🔮 회복 장소 추천받기") and lat and lon:
-    # 현재 시간, 날씨 매핑
-    hour = now.hour
-    time_slot = map_time(hour)
-    raw_weather = get_weather(lat, lon)
-    weather = map_weather(raw_weather)
+# ▶ 추천 실행
+if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
+    with st.spinner("추천 장소를 찾는 중입니다..."):
+        sampled_df = nearby_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1))
 
-    st.info(f"📡 현재 날씨: {raw_weather} → 매핑: {weather}, 시간대: {time_slot}")
-
-    # ▶ 예측 입력값 구성 및 인코딩
-    input_data = {
-        "시간대": time_slot,
-        "날씨": weather,
-        "나이대": age_group,
-        "직업": job_type
-    }
-
-    try:
-        for key in input_data:
-            encoder = encoders[key]
-            input_data[key] = encoder.transform([input_data[key]])[0]
-
-        X_pred = pd.DataFrame([input_data])
-        predicted_tag = model.predict(X_pred)[0]
-        tag_encoder = encoders["회복태그"]
-        predicted_label = tag_encoder.inverse_transform([predicted_tag])[0]
-
-        st.success(f"🎯 예측된 회복 태그: **{predicted_label}**")
-
-        # ▶ 거리 필터 + 태그 필터
-        df["DIST_KM"] = df.apply(compute_distance, axis=1)
-        nearby_df = df[df["DIST_KM"] <= radius]
-        tag_df = nearby_df[nearby_df["TAG"].str.contains(predicted_label, case=False, na=False)]
-
-        if tag_df.empty:
-            st.warning("😢 해당 태그에 맞는 장소가 없습니다.")
+        if sampled_df.empty:
+            st.warning("❌ 조건에 맞는 장소가 없습니다.")
         else:
-            for i, (_, row) in enumerate(tag_df.iterrows()):
+            # 현재 위치 날씨 표시
+            weather = get_weather(lat, lon)
+            st.markdown(f"### 🌤️ 현재 위치 날씨")
+            st.write(f"- 날씨: {weather['weather']}")
+            st.write(f"- 기온: {weather['temp']}°C")
+            st.write(f"- 습도: {weather['humidity']}%")
+            st.markdown("---")
+
+            st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
+
+            for _, row in sampled_df.iterrows():
                 st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
                 st.markdown(f"- 📍 위치: {row['LOCATION']}")
-                st.markdown(f"- 🏷️ 태그: {row['TAG']}")
                 st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
 
-                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}_{i}"):
+                # ▶ 상세 보기 버튼 및 클릭 로그 저장
+                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
+                    st.success(f"✅ '{row['NAME']}' 선택됨!")
+                    st.write(f"- 위치: {row['LOCATION']}")
+                    st.write(f"- 카테고리: {row['CATEGORY']}")
+                    st.write(f"- 거리: {row['DIST_KM']:.2f} km")
+
                     log = {
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "name": row['NAME'],
                         "category": row['CATEGORY'],
                         "location": row['LOCATION'],
-                        "distance_km": round(row['DIST_KM'], 2),
-                        "tag": predicted_label
+                        "distance_km": round(row['DIST_KM'], 2)
                     }
-                    pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
-                    st.success("✅ 클릭 기록 저장 완료")
+                    pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
 
                 st.markdown("---")
 
-            st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+            # 🗺 지도 표시
+            st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
-    except ValueError as ve:
-        st.error(f"⚠️ 예측 중 오류 발생: {ve}")
-
-# ▶ 클릭 로그 확인 및 다운로드
-st.markdown("## 🗂️ 내가 클릭한 장소 기록")
-if os.path.exists("click_log.csv"):
-    log_df = pd.read_csv("click_log.csv")
-    st.dataframe(log_df.tail(10))
-    csv = log_df.to_csv(index=False).encode('utf-8-sig')
-    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="../홍익대학교/4학년/1학기/시스템분석/Project_code/click_log.csv", mime="text/csv")
+# 첫 실행 대기
 else:
-    st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
+    st.info("📌 아래 버튼을 눌러 추천 장소를 받아보세요.")
