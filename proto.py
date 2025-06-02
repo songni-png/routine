@@ -192,3 +192,4 @@ if os.path.exists("click_log.csv"):
 else:
     st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
     
+    
