@@ -45,7 +45,7 @@ CLICK_FILE = os.path.join(current_dir, "click_log.csv")
 
 # ▶ 장소 데이터 로딩
 try:
-    df = pd.read_csv(PLACE_FILE, encoding="utf-8-sig")
+    df = pd.read_csv(PLACE_FILE, encoding="cp949")
     df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
     df["LAT"] = df["LAT"].astype(float)
     df["LON"] = df["LON"].astype(float)
