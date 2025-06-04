@@ -107,6 +107,7 @@ if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
 
 sampled_df = st.session_state.get("recommendation")
 filtered_df = st.session_state.get("filtered")
+selected_place = st.session_state.get("selected_place", None)
 click_count = st.session_state.get("click_count", 0)
 
 if sampled_df is not None:
