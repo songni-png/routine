@@ -14,7 +14,17 @@ st.title("🧘 회복이 필요한 날을 위한 맞춤 루틴 추천기")
 st.markdown(f"⏰ 현재 시간: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
 # ▶ 사용자 위치 요청
-loc = streamlit_js_eval(js_expressions="navigator.geolocation.getCurrentPosition(pos => pos.coords);", key="get_location")
+loc = streamlit_js_eval(
+    js_expressions="""
+    new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+            (err) => reject(err)
+        );
+    })
+    """,
+    key="get_location"
+)
 
 if loc and isinstance(loc, dict):
     lat, lon = loc["latitude"], loc["longitude"]
