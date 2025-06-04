@@ -127,8 +127,8 @@ if sampled_df is not None:
             if st.button(f"[🔎 {row['CATEGORY']}] 관련 카테고리 더보기", key=f"more_{row['CATEGORY']}"):
                 df["DIST_KM"] = df.apply(compute_distance, axis=1)
                 similar_places = df[df["CATEGORY"] == row["CATEGORY"]].sort_values(by="DIST_KM").head(3)
-               for _, s_row in similar_places.iterrows():
-               st.write(f"- **{s_row['NAME']}** ({s_row['DIST_KM']:.2f} km) - {s_row['LOCATION']}")
+                for _, s_row in similar_places.iterrows():
+                    st.write(f"- **{s_row['NAME']}** ({s_row['DIST_KM']:.2f} km) - {s_row['LOCATION']}")
         
         st.markdown("---")
 
