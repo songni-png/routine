@@ -131,8 +131,8 @@ if sampled_df is not None:
                 "location": row['LOCATION'],
                 "distance_km": round(row['DIST_KM'], 2)
             }
-            # CSV 파일에 기록
-            click_log_df = pd.DataFrame([log])
+            pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
+            
             # ▶ 같은 카테고리의 가까운 장소 3개 찾기 (거리 계산 후 필터링)
             df["DIST_KM"] = df.apply(compute_distance, axis=1)
             similar_places = df[df["CATEGORY"] == row["CATEGORY"]].sort_values(by="DIST_KM").head(3)
