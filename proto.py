@@ -170,8 +170,9 @@ if sampled_df is not None:
                     st.info("📭 관련 장소가 없습니다.")
                 else:
                     st.markdown(f"#### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
-                    for _, mp in more_places.iterrows():
-                        with st.container():
+                    cols = st.columns(3)
+                    for index, mp in enumerate(more_places.iterrows()):
+                        with cols[index]:
                             st.markdown(f"##### 🏷️ {mp['NAME']}")
                             st.markdown(f"📍 **위치:** {mp['LOCATION']}")
                             st.markdown(f"🏷️ **태그:** {mp.get('TAG', '없음')}")
