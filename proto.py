@@ -170,15 +170,15 @@ if sampled_df is not None:
                     st.info("📭 관련 장소가 없습니다.")
                 else:
                     st.markdown(f"#### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
-                    cols = st.columns(3)
+                    cols = st.columns(len(more_places))
                     for index, mp in enumerate(more_places.iterrows()):
                         with cols[index]:
                             st.markdown(f"#### 🏷️ {mp[1]['NAME']}")
-                            st.markdown(f"📍 **위치:** {mp[1]['LOCATION']}")
-                            st.markdown(f"🏷️ **태그:** {mp[1].get('TAG', '없음')}")
+                            st.markdown(f"📍 **위치:** {mp['LOCATION']}")
+                            st.markdown(f"🏷️ **태그:** {mp.get('TAG', '없음')}")
                     
                         try:
-                            st.markdown(f"📏 **거리:** {float(mp[1]['DIST_KM']):.2f} km")
+                            st.markdown(f"📏 **거리:** {float(mp['DIST_KM']):.2f} km")
                         except (ValueError, TypeError):
                             st.markdown("📏 **거리:** 알 수 없음")
 
