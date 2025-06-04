@@ -105,7 +105,7 @@ else:
     top_cats = []
     similar_top_cats = []
 if not top_cats_series.empty:
-    st.markdown("### ⭐ 가장 많이 선택된 카테고리")
+    st.markdown("### ⭐ 최다 선택 및 유사 카테고리")
     for cat, count in top_cats_series.items():
         st.markdown(f"- {cat} ({count}회 선택됨)")
 
