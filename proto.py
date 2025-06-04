@@ -123,7 +123,16 @@ if sampled_df is not None:
             st.write(f"- 위치: {row['LOCATION']}")
             st.write(f"- 카테고리: {row['CATEGORY']}")
             st.write(f"- 거리: {row['DIST_KM']:.2f} km")
-
+            # 클릭 로그 기록 코드 추가
+            log = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "name": row['NAME'],
+                "category": row['CATEGORY'],
+                "location": row['LOCATION'],
+                "distance_km": round(row['DIST_KM'], 2)
+            }
+            # CSV 파일에 기록
+            click_log_df = pd.DataFrame([log])
             # ▶ 같은 카테고리의 가까운 장소 3개 찾기 (거리 계산 후 필터링)
             df["DIST_KM"] = df.apply(compute_distance, axis=1)
             similar_places = df[df["CATEGORY"] == row["CATEGORY"]].sort_values(by="DIST_KM").head(3)
@@ -135,10 +144,9 @@ if sampled_df is not None:
 
     
 
-
-
 # ▶ 클릭 로그 확인
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
+
 if os.path.exists(CLICK_FILE):
     log_df = pd.read_csv(CLICK_FILE)
     st.dataframe(log_df.tail(10))
