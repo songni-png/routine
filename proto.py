@@ -105,6 +105,8 @@ if sampled_df is not None:
     st.markdown("---")
 
     st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
+    # 지도
+    st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
     for _, row in sampled_df.iterrows():
         st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
@@ -131,7 +133,7 @@ if sampled_df is not None:
 
         st.markdown("---")
 
-    st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+    
 
 
 
