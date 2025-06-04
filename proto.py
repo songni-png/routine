@@ -105,6 +105,7 @@ if sampled_df is not None:
             st.session_state["selected_place"] = row['NAME']
             selected_place = row['NAME']
 
+
         
 
             # 클릭 로그 저장
