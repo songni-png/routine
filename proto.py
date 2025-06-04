@@ -126,10 +126,7 @@ if sampled_df is not None:
         if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
             st.session_state["selected_place"] = row["NAME"]
 
-        if st.session_state.get("selected_place") == row["NAME"]:
-            st.success(f"✅ '{row['NAME']}' 상세 내용")
-            st.write(f"- 위치: {row['LOCATION']}")
-            st.write(f"- 태그: {row.get('TAG', '없음')}")
+       
             try:
                 st.write(f"- 거리: {float(row['DIST_KM']):.2f} km")
             except (ValueError, TypeError):
