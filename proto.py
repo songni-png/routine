@@ -139,11 +139,11 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
                         pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
 
                 st.markdown("---")
-
-    try:
-        st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
-    except Exception as e:
-        st.error(f"⚠️ 지도 표시 중 오류 발생: {e}")
+                
+                try:
+                    st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+                except Exception as e:
+                    st.error(f"⚠️ 지도 표시 중 오류 발생: {e}")
 
 
 # ▶ 클릭 로그 확인 및 다운로드
