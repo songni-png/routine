@@ -6,6 +6,8 @@ from geopy.distance import geodesic
 import joblib
 import requests
 import os
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # ▶ OpenWeatherMap API 키
 API_KEY = "db993432d1b5f597ea03fd182d005ce9"
@@ -97,16 +99,13 @@ sampled_df = st.session_state.get("recommendation")
 selected_place = st.session_state.get("selected_place")
 
 if sampled_df is not None:
-    weather = get_weather(lat, lon)
-    st.markdown(f"### 🌤️ 현재 위치 날씨")
-    st.write(f"- 날씨: {weather['weather']}")
-    st.write(f"- 기온: {weather['temp']}°C")
-    st.write(f"- 습도: {weather['humidity']}%")
-    st.markdown("---")
-
     st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
-    # 지도
     st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+
+    # ▶ TF-IDF 기반 코사인 유사도 계산
+    df["feature_text"] = df["CATEGORY"] + " " + df["TAG"]
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(df["feature_text"])
 
     for _, row in sampled_df.iterrows():
         st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
@@ -133,26 +132,27 @@ if sampled_df is not None:
             }
             pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
             
-            # ▶ 같은 카테고리의 가까운 장소 3개 찾기 (거리 계산 후 필터링)
-            df["DIST_KM"] = df.apply(compute_distance, axis=1)
-            similar_places = df[df["CATEGORY"] == row["CATEGORY"]].sort_values(by="DIST_KM").head(3)
-            st.markdown("### 🏷️ 같은 카테고리의 가까운 장소 추천")
+            # 📌 선택한 장소 벡터 추출
+            place_index = df[df["NAME"] == selected_place].index[0]
+            place_vector = tfidf_matrix[place_index]
+
+            # 📌 코사인 유사도 계산
+            similarity_scores = cosine_similarity(place_vector, tfidf_matrix).flatten()
+
+            # 📌 유사도가 높은 상위 3개 장소 추천
+            similar_places = df.iloc[similarity_scores.argsort()[-4:-1][::-1]]
+
+            st.markdown("### 🏷️ 코사인 유사도가 높은 추천 장소")
             for _, s_row in similar_places.iterrows():
-                st.write(f"- **{s_row['NAME']}** ({s_row['DIST_KM']:.2f} km) - {s_row['LOCATION']}")
+                st.write(f"- **{s_row['NAME']}** ({s_row['CATEGORY']}, {s_row['TAG']})")
 
         st.markdown("---")
 
-    
-
-# ▶ 클릭 로그 확인
-st.markdown("## 🗂️ 내가 클릭한 장소 기록")
-
-if os.path.exists(CLICK_FILE):
-    log_df = pd.read_csv(CLICK_FILE)
-    st.dataframe(log_df.tail(10))
-    csv = log_df.to_csv(index=False).encode('utf-8-sig')
-    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
-else:
-    st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
-
-
+    st.markdown("## 🗂️ 내가 클릭한 장소 기록")
+    if os.path.exists(CLICK_FILE):
+        log_df = pd.read_csv(CLICK_FILE)
+        st.dataframe(log_df.tail(10))
+        csv = log_df.to_csv(index=False).encode("utf-8-sig")
+        st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
+    else:
+        st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
