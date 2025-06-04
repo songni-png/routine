@@ -169,7 +169,7 @@ if sampled_df is not None:
                 if more_places.empty:
                     st.info("📭 관련 장소가 없습니다.")
                 else:
-                    st.markdown(f"### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
+                    st.markdown(f"## 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
                     for _, mp in more_places.iterrows():
                         with st.container():
                             st.markdown(f"## 🏷️ {mp['NAME']}")
