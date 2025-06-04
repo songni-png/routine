@@ -105,6 +105,8 @@ def compute_distance(row):
 # ▶ 추천 버튼
 if st.button("🔮 회복 장소 추천받기") and lat and lon:
     # 현재 시간, 날씨 매핑
+    # 현재 시간 정의
+    now = datetime.now()
     hour = now.hour
     time_slot = map_time(hour)
     raw_weather = get_weather(lat, lon)
