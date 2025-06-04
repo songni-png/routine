@@ -173,7 +173,7 @@ if sampled_df is not None:
                     cols = st.columns(len(more_places))
                     for index, mp in enumerate(more_places.iterrows()):
                         with cols[index]:
-                            st.markdown(f"#### 🏷️ {mp[1]['NAME']}")
+                            st.markdown(f"#### 🏷️ {mp['NAME']}")
                             st.markdown(f"📍 **위치:** {mp['LOCATION']}")
                             st.markdown(f"🏷️ **태그:** {mp.get('TAG', '없음')}")
                     
