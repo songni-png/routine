@@ -140,17 +140,17 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
 
                 st.markdown("---")
                 
-                try:
-                    st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
-                finally:
-                    st.info("클릭 기록이 없을 수도 있습니다.")
+                st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
+    except ValueError as ve:
+        st.error(f"⚠️ 예측 중 오류 발생: {ve}")
 
-# ▶ 클릭 로그 확인 및 다운로드
+# ▶ 클릭 로그
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
 if os.path.exists(CLICK_FILE):
     log_df = pd.read_csv(CLICK_FILE)
     st.dataframe(log_df.tail(10))
-    st.download_button("📥 클릭 로그 CSV 다운로드", data=log_df.to_csv(index=False).encode('utf-8-sig'), file_name="click_log.csv", mime="text/csv")
+    csv = log_df.to_csv(index=False).encode('utf-8-sig')
+    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
 else:
     st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
