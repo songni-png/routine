@@ -142,7 +142,7 @@ if sampled_df is not None:
             # 📌 유사도가 높은 상위 3개 장소 추천
             similar_places = df.iloc[similarity_scores.argsort()[-4:-1][::-1]]
 
-            st.markdown("### 🏷️ 코사인 유사도가 높은 추천 장소")
+            st.markdown("### 🏷️ 유사한 추천 장소")
             for _, s_row in similar_places.iterrows():
                 st.write(f"- **{s_row['NAME']}** ({s_row['CATEGORY']}, {s_row['TAG']})")
 
