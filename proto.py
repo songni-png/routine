@@ -91,7 +91,7 @@ if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
     df["DIST_KM"] = df.apply(compute_distance, axis=1)
     nearby_df = df[df["DIST_KM"] <= radius]
 
-    filtered_df = nearby_df.copy()  # 태그 필터 제거
+    filtered_df = nearby_df.copy()
 
     if filtered_df.empty:
         st.warning("❌ 조건에 맞는 장소가 없습니다.")
@@ -130,6 +130,12 @@ if sampled_df is not None:
             st.write(f"- 카테고리: {row['CATEGORY']}")
             st.write(f"- 거리: {row['DIST_KM']:.2f} km")
 
+            # ▶ 같은 카테고리의 가까운 장소 3개 찾기
+            similar_places = df[df["CATEGORY"] == row["CATEGORY"]].sort_values(by="DIST_KM").head(3)
+            st.markdown("### 🏷️ 같은 카테고리의 가까운 장소 추천")
+            for _, s_row in similar_places.iterrows():
+                st.write(f"- **{s_row['NAME']}** ({s_row['DIST_KM']:.2f} km) - {s_row['LOCATION']}")
+
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "name": row['NAME'],
@@ -142,6 +148,7 @@ if sampled_df is not None:
         st.markdown("---")
 
     st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+
 
 # ▶ 클릭 로그 확인
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
