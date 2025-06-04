@@ -49,55 +49,36 @@ CLICK_FILE = os.path.join(current_dir, "click_log.csv")
 MODEL_PATH = os.path.join(current_dir, "recovery_rf_model_v3.pkl")
 ENCODER_PATH = os.path.join(current_dir, "recovery_rf_encoders_v3.pkl")
 
-# 모델 및 인코더 로드
+# ▶ 모델 및 인코더 로드
 model = joblib.load(MODEL_PATH)
 encoders = joblib.load(ENCODER_PATH)
 
-# ▶ 날씨 API 매핑 함수
+# ▶ 시간대 및 날씨 매핑 함수
 def map_weather(api_weather):
-    if api_weather in ["Clear"]:
-        return "맑음"
-    elif api_weather in ["Clouds"]:
-        return "흐림"
-    elif api_weather in ["Rain", "Drizzle", "Thunderstorm"]:
-        return "비"
-    else:
-        return "기타"
+    mapping = {"Clear": "맑음", "Clouds": "흐림", "Rain": "비", "Drizzle": "비", "Thunderstorm": "비"}
+    return mapping.get(api_weather, "기타")
 
-# ▶ 시간대 매핑 함수
 def map_time(hour):
-    if 6 <= hour < 12:
-        return "오전"
-    elif 12 <= hour < 18:
-        return "오후"
-    elif 18 <= hour < 22:
-        return "저녁"
-    else:
-        return "심야"
+    if 6 <= hour < 12: return "오전"
+    elif 12 <= hour < 18: return "오후"
+    elif 18 <= hour < 22: return "저녁"
+    else: return "심야"
 
 # ▶ 날씨 API 요청
 @st.cache_data
 def get_weather(lat, lon):
     try:
         url = "https://api.openweathermap.org/data/2.5/weather"
-        params = {
-            "lat": lat,
-            "lon": lon,
-            "appid": API_KEY,
-            "units": "metric",
-            "lang": "kr"
-        }
+        params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "metric", "lang": "kr"}
         res = requests.get(url, params=params)
-        data = res.json()
-        return data["weather"][0]["main"]
+        return res.json()["weather"][0]["main"]
     except:
         return "Unknown"
 
+# ▶ 데이터 로드 및 열 정렬 수정
 try:
     df = pd.read_csv(PLACE_FILE, encoding="cp949")
-    df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
-    df["LAT"] = df["LAT"].astype(float)
-    df["LON"] = df["LON"].astype(float)
+    df = df.dropna(subset=["LAT", "LON", "CATEGORY"]).astype({"LAT": float, "LON": float})
     df["TAG"] = df["TAG"].fillna("")
 except Exception as e:
     st.error(f"❌ 장소 파일을 불러올 수 없습니다: {e}")
@@ -109,8 +90,6 @@ def compute_distance(row):
 
 # ▶ 추천 버튼
 if st.button("🔮 회복 장소 추천받기") and lat and lon:
-    # 현재 시간, 날씨 매핑
-    # 현재 시간 정의
     now = datetime.now()
     hour = now.hour
     time_slot = map_time(hour)
@@ -120,22 +99,15 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
     st.info(f"📡 현재 날씨: {raw_weather} → 매핑: {weather}, 시간대: {time_slot}")
 
     # ▶ 예측 입력값 구성 및 인코딩
-    input_data = {
-        "시간대": time_slot,
-        "날씨": weather,
-        "나이대": age_group,
-        "직업": job_type
-    }
-
+    input_data = {"시간대": time_slot, "날씨": weather, "나이대": age_group, "직업": job_type}
+    
     try:
         for key in input_data:
-            encoder = encoders[key]
-            input_data[key] = encoder.transform([input_data[key]])[0]
+            input_data[key] = encoders[key].transform([input_data[key]])[0]
 
         X_pred = pd.DataFrame([input_data])
         predicted_tag = model.predict(X_pred)[0]
-        tag_encoder = encoders["회복태그"]
-        predicted_label = tag_encoder.inverse_transform([predicted_tag])[0]
+        predicted_label = encoders["회복태그"].inverse_transform([predicted_tag])[0]
 
         st.success(f"🎯 예측된 회복 태그: **{predicted_label}**")
 
@@ -147,37 +119,34 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
         if tag_df.empty:
             st.warning("😢 해당 태그에 맞는 장소가 없습니다.")
         else:
-            for i, (_, row) in enumerate(tag_df.iterrows()):
+            for _, row in tag_df.iterrows():
                 st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
                 st.markdown(f"- 📍 위치: {row['LOCATION']}")
                 st.markdown(f"- 🏷️ 태그: {row['TAG']}")
                 st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
 
-                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}_{i}"):
-                    log = {
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "name": row['NAME'],
-                        "category": row['CATEGORY'],
-                        "location": row['LOCATION'],
-                        "distance_km": round(row['DIST_KM'], 2),
-                        "tag": predicted_label
-                    }
-                    pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
-                    st.success("✅ 클릭 기록 저장 완료")
+                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
+                    st.session_state["selected_place"] = row['NAME']
+                    selected_place = row['NAME']
+
+                    if selected_place == row['NAME']:
+                        st.success(f"✅ '{row['NAME']}' 상세 내용")
+                        st.write(f"- 위치: {row['LOCATION']}")
+                        st.write(f"- 카테고리: {row['CATEGORY']}")
+                        st.write(f"- 거리: {row['DIST_KM']:.2f} km")
+
+                        log = {"timestamp": now.strftime("%Y-%m-%d %H:%M:%S"), "name": row['NAME'], "category": row['CATEGORY'], "location": row['LOCATION'], "distance_km": round(row['DIST_KM'], 2)}
+                        pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
 
                 st.markdown("---")
 
-            st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+    st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
-    except ValueError as ve:
-        st.error(f"⚠️ 예측 중 오류 발생: {ve}")
-
-# ▶ 클릭 로그
+# ▶ 클릭 로그 확인 및 다운로드
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
 if os.path.exists(CLICK_FILE):
     log_df = pd.read_csv(CLICK_FILE)
     st.dataframe(log_df.tail(10))
-    csv = log_df.to_csv(index=False).encode('utf-8-sig')
-    st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
+    st.download_button("📥 클릭 로그 CSV 다운로드", data=log_df.to_csv(index=False).encode('utf-8-sig'), file_name="click_log.csv", mime="text/csv")
 else:
     st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
