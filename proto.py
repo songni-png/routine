@@ -142,8 +142,8 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
                 
                 try:
                     st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
-                except Exception as e:
-                    st.error(f"⚠️ 지도 표시 중 오류 발생: {e}")
+                finally:
+                    st.info("클릭 기록이 없을 수도 있습니다.")
 
 
 # ▶ 클릭 로그 확인 및 다운로드
