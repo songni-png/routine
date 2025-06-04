@@ -3,6 +3,8 @@ import pandas as pd
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
 from geopy.distance import geodesic
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import requests
 import os
 
@@ -70,15 +72,38 @@ def get_weather(lat, lon):
     except:
         return {"weather": "에러", "temp": "-", "humidity": "-"}
 
+# ▶ TF-IDF 기반 코사인 유사도 계산
+df["feature_text"] = df["CATEGORY"] + " " + df["TAG"]
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(df["feature_text"])
+
+# ▶ 상위 카테고리와 유사한 카테고리 찾기
+def get_similar_categories(category):
+    cat_index = df[df["CATEGORY"] == category].index[0]
+    cat_vector = tfidf_matrix[cat_index]
+    similarity_scores = cosine_similarity(cat_vector, tfidf_matrix).flatten()
+    
+    # 유사도가 높은 카테고리 찾기
+    similar_cats = df.iloc[similarity_scores.argsort()[-4:-1][::-1]]["CATEGORY"].unique().tolist()
+    return similar_cats
+    
 # 📊 클릭 로그 기반 상위 카테고리 분석
 if os.path.exists(CLICK_FILE):
     log_df = pd.read_csv(CLICK_FILE)
     top_cats_series = log_df['category'].value_counts().head(3)
     top_cats = top_cats_series.index.tolist()
+
+    # 📌 코사인 유사도를 이용한 추천 카테고리 추가
+    similar_top_cats = []
+    for cat in top_cats:
+        similar_top_cats.extend(get_similar_categories(cat))
+
+    # 중복 제거
+    similar_top_cats = list(set(similar_top_cats))
 else:
     top_cats_series = pd.Series()
     top_cats = []
-
+    similar_top_cats = []
 if not top_cats_series.empty:
     st.markdown("### ⭐ 가장 많이 선택된 카테고리")
     for cat, count in top_cats_series.items():
@@ -138,19 +163,21 @@ if sampled_df is not None:
         # ➕ 더보기 버튼 (2회차 이상)
         if click_count >= 2 and row["CATEGORY"] in top_cats:
             if st.button(f"[🔎 {row['CATEGORY']}] 관련 카테고리 더보기", key=f"more_{row['CATEGORY']}"):
-                more_places = filtered_df[(filtered_df["CATEGORY"] == row["CATEGORY"]) & (~filtered_df["NAME"].isin(sampled_df["NAME"]))]
+                # ✅ 기존 추천 장소를 제외하고 추가 추천
+                more_places = filtered_df[(filtered_df["CATEGORY"].isin(similar_top_cats)) & (~filtered_df["NAME"].isin(sampled_df["NAME"]))]
                 more_places = more_places.sort_values("DIST_KM").head(3)
-                if more_places.empty:
-                    st.info("📭 관련 장소가 없습니다.")
-                else:
-                    for _, mp in more_places.iterrows():
-                        st.markdown(f"- **{mp['NAME']}**")
-                        st.markdown(f"  - 위치: {mp['LOCATION']}")
-                        st.markdown(f"  - 태그: {mp.get('TAG', '없음')}")
-                        try:
-                            st.markdown(f"  - 거리: {float(mp['DIST_KM']):.2f} km")
-                        except (ValueError, TypeError):
-                            st.markdown("  - 거리: 알 수 없음")
+               if more_places.empty:
+                   st.info("📭 관련 장소가 없습니다.")
+               else:
+                   st.markdown(f"### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
+                   for _, mp in more_places.iterrows():
+                       st.markdown(f"- **{mp['NAME']}**")
+                       st.markdown(f"  - 위치: {mp['LOCATION']}")
+                       st.markdown(f"  - 태그: {mp.get('TAG', '없음')}")
+                       try:
+                           st.markdown(f"  - 거리: {float(mp['DIST_KM']):.2f} km")
+                       except (ValueError, TypeError):
+                           st.markdown("  - 거리: 알 수 없음")
 
         st.markdown("---")
 
