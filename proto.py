@@ -149,9 +149,13 @@ if sampled_df is not None:
                 if more_places.empty:
                     st.info("📭 관련 장소가 없습니다.")
                 else:
+                    st.markdown(f"### 🏷️ '{row['CATEGORY']}' 관련 추천 장소")
                     for _, mp in more_places.iterrows():
-                        st.markdown(f"- **{mp['NAME']}** ({mp['DIST_KM']:.2f} km)")
-        st.markdown("---")
+                        st.markdown(f"- **{mp['NAME']}**")
+                        st.write(f"📍 위치: {mp['LOCATION']}")
+                        st.write(f"🏷️ 카테고리: {mp['CATEGORY']}")
+                        st.write(f"📏 거리: 약 {mp['DIST_KM']:.2f} km")
+                        st.markdown("---")
 
 # ▶ 클릭 로그 출력
 if os.path.exists(CLICK_FILE):
