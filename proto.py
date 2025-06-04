@@ -3,7 +3,6 @@ import pandas as pd
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
 from geopy.distance import geodesic
-import joblib
 import requests
 import os
 
@@ -14,10 +13,6 @@ API_KEY = "db993432d1b5f597ea03fd182d005ce9"
 st.set_page_config(page_title="회복 루틴 추천기", page_icon="🧘", layout="centered")
 st.title("🧘 회복이 필요한 날을 위한 맞춤 루틴 추천기")
 st.markdown(f"⏰ 현재 시간: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-
-# ▶ 사용자 입력
-age_group = st.selectbox("나이대는 어떻게 되시나요?", ["20대", "30대", "40대", "50대 이상"])
-job_type = st.selectbox("어떤 직업이신가요?", ["학생", "회사원", "프리랜서"])
 
 # ▶ 사용자 위치 요청
 loc = streamlit_js_eval(
@@ -53,22 +48,12 @@ ENCODER_PATH = os.path.join(current_dir, "recovery_rf_encoders_v3.pkl")
 model = joblib.load(MODEL_PATH)
 encoders = joblib.load(ENCODER_PATH)
 
-# ▶ 시간대 및 날씨 매핑 함수
-def map_weather(api_weather):
-    mapping = {"Clear": "맑음", "Clouds": "흐림", "Rain": "비", "Drizzle": "비", "Thunderstorm": "비"}
-    return mapping.get(api_weather, "기타")
-
-def map_time(hour):
-    if 6 <= hour < 12: return "오전"
-    elif 12 <= hour < 18: return "오후"
-    elif 18 <= hour < 22: return "저녁"
-    else: return "심야"
-
-
-# ▶ 데이터 로드 및 열 정렬 수정
+# ▶ 장소 데이터 로딩
 try:
-    df = pd.read_csv(PLACE_FILE, encoding="cp949")
-    df = df.dropna(subset=["LAT", "LON", "CATEGORY"]).astype({"LAT": float, "LON": float})
+    df = pd.read_csv(PLACE_FILE, encoding="utf-8-sig")
+    df = df.dropna(subset=["LAT", "LON", "CATEGORY"])
+    df["LAT"] = df["LAT"].astype(float)
+    df["LON"] = df["LON"].astype(float)
     df["TAG"] = df["TAG"].fillna("")
 except Exception as e:
     st.error(f"❌ 장소 파일을 불러올 수 없습니다: {e}")
@@ -78,7 +63,7 @@ except Exception as e:
 def compute_distance(row):
     return geodesic((lat, lon), (row["LAT"], row["LON"])).km if lat and lon else None
 
-# ▶ 날씨 정보
+# ▶ 날씨 가져오기
 @st.cache_data
 def get_weather(lat, lon):
     try:
@@ -105,18 +90,16 @@ if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
     df["DIST_KM"] = df.apply(compute_distance, axis=1)
     nearby_df = df[df["DIST_KM"] <= radius]
 
-    # 태그 필터링
-    filtered_df = nearby_df[nearby_df["TAG"].str.contains(tag, case=False)]
+    filtered_df = nearby_df.copy()  # 태그 필터 제거
 
-    sampled_df = filtered_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1))
-
-    if sampled_df.empty:
+    if filtered_df.empty:
         st.warning("❌ 조건에 맞는 장소가 없습니다.")
     else:
+        sampled_df = filtered_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1)).reset_index(drop=True)
         st.session_state["recommendation"] = sampled_df
         st.session_state["selected_place"] = None
 
-# ▶ 추천 유지
+# ▶ 추천 결과 유지
 sampled_df = st.session_state.get("recommendation")
 selected_place = st.session_state.get("selected_place")
 
@@ -159,7 +142,7 @@ if sampled_df is not None:
 
     st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
-# ▶ 클릭 로그 확인 및 다운로드
+# ▶ 클릭 로그 확인
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
 if os.path.exists(CLICK_FILE):
     log_df = pd.read_csv(CLICK_FILE)
@@ -168,4 +151,3 @@ if os.path.exists(CLICK_FILE):
     st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
 else:
     st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
-
