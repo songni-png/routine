@@ -123,6 +123,25 @@ if sampled_df is not None:
         st.markdown(f"- 태그: {row.get('TAG', '없음')}")
         st.markdown(f"- 거리: {row['DIST_KM']:.2f} km")
 
+        if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
+            st.session_state["selected_place"] = row['NAME']
+            selected_place = row['NAME']
+
+        if selected_place == row['NAME']:
+            st.success(f"✅ '{row['NAME']}' 상세 내용")
+            st.write(f"- 위치: {row['LOCATION']}")
+            st.write(f"- 카테고리: {row['CATEGORY']}")
+            st.write(f"- 거리: {row['DIST_KM']:.2f} km")
+            # 클릭 로그 기록 코드 추가
+            log = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "name": row['NAME'],
+                "category": row['CATEGORY'],
+                "location": row['LOCATION'],
+                "distance_km": round(row['DIST_KM'], 2)
+            }
+            pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
+
         if click_count >= 2 and row['CATEGORY'] in top_cats:
             if st.button(f"[🔎 {row['CATEGORY']}] 관련 카테고리 더보기", key=f"more_{row['CATEGORY']}"):
                 more_places = filtered_df[(filtered_df['CATEGORY'] == row['CATEGORY']) & (filtered_df['NAME'] != row['NAME'])]
