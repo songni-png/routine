@@ -140,7 +140,11 @@ if st.button("🔮 회복 장소 추천받기") and lat and lon:
 
                 st.markdown("---")
 
-    st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+    try:
+        st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+    except Exception as e:
+        st.error(f"⚠️ 지도 표시 중 오류 발생: {e}")
+
 
 # ▶ 클릭 로그 확인 및 다운로드
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
