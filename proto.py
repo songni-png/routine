@@ -42,12 +42,6 @@ radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
 CLICK_FILE = os.path.join(current_dir, "click_log.csv")
-MODEL_PATH = os.path.join(current_dir, "recovery_rf_model_v3.pkl")
-ENCODER_PATH = os.path.join(current_dir, "recovery_rf_encoders_v3.pkl")
-
-# ▶ 모델 및 인코더 로드
-model = joblib.load(MODEL_PATH)
-encoders = joblib.load(ENCODER_PATH)
 
 # ▶ 장소 데이터 로딩
 try:
@@ -91,12 +85,10 @@ if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
     df["DIST_KM"] = df.apply(compute_distance, axis=1)
     nearby_df = df[df["DIST_KM"] <= radius]
 
-    filtered_df = nearby_df.copy()
-
-    if filtered_df.empty:
+    if nearby_df.empty:
         st.warning("❌ 조건에 맞는 장소가 없습니다.")
     else:
-        sampled_df = filtered_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1)).reset_index(drop=True)
+        sampled_df = nearby_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1)).reset_index(drop=True)
         st.session_state["recommendation"] = sampled_df
         st.session_state["selected_place"] = None
 
@@ -130,24 +122,17 @@ if sampled_df is not None:
             st.write(f"- 카테고리: {row['CATEGORY']}")
             st.write(f"- 거리: {row['DIST_KM']:.2f} km")
 
-            # ▶ 같은 카테고리의 가까운 장소 3개 찾기
+            # ▶ 같은 카테고리의 가까운 장소 3개 찾기 (거리 계산 후 필터링)
+            df["DIST_KM"] = df.apply(compute_distance, axis=1)
             similar_places = df[df["CATEGORY"] == row["CATEGORY"]].sort_values(by="DIST_KM").head(3)
             st.markdown("### 🏷️ 같은 카테고리의 가까운 장소 추천")
             for _, s_row in similar_places.iterrows():
                 st.write(f"- **{s_row['NAME']}** ({s_row['DIST_KM']:.2f} km) - {s_row['LOCATION']}")
 
-            log = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "name": row['NAME'],
-                "category": row['CATEGORY'],
-                "location": row['LOCATION'],
-                "distance_km": round(row['DIST_KM'], 2)
-            }
-            pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
-
         st.markdown("---")
 
     st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+
 
 
 # ▶ 클릭 로그 확인
