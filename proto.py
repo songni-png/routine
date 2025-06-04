@@ -45,8 +45,8 @@ radius = st.slider("추천 반경 (km)", 1.0, 5.0, 2.5, step=0.1)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
 CLICK_FILE = os.path.join(current_dir, "click_log.csv")
-MODEL_PATH = os.path.join(current_dir, recovery_rf_model_v3.pkl")
-ENCODER_PATH = os.path.join(current_dir, recovery_rf_encoders_v3.pkl")
+MODEL_PATH = os.path.join(current_dir, "recovery_rf_model_v3.pkl")
+ENCODER_PATH = os.path.join(current_dir, "recovery_rf_encoders_v3.pkl")
 
 # ▶ 날씨 API 매핑 함수
 def map_weather(api_weather):
