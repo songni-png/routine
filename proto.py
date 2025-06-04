@@ -148,9 +148,9 @@ if sampled_df is not None:
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
 
 if os.path.exists(CLICK_FILE):
-    click_log_df = pd.read_csv(CLICK_FILE)
+    log_df = pd.read_csv(CLICK_FILE)
     st.dataframe(log_df.tail(10))
-    csv = click_log_df.to_csv(index=False).encode('utf-8-sig')
+    csv = log_df.to_csv(index=False).encode('utf-8-sig')
     st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
 else:
     st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
