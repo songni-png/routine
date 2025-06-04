@@ -166,18 +166,18 @@ if sampled_df is not None:
                 # ✅ 기존 추천 장소를 제외하고 추가 추천
                 more_places = filtered_df[(filtered_df["CATEGORY"].isin(similar_top_cats)) & (~filtered_df["NAME"].isin(sampled_df["NAME"]))]
                 more_places = more_places.sort_values("DIST_KM").head(3)
-               if more_places.empty:
-                   st.info("📭 관련 장소가 없습니다.")
-               else:
-                   st.markdown(f"### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
-                   for _, mp in more_places.iterrows():
-                       st.markdown(f"- **{mp['NAME']}**")
-                       st.markdown(f"  - 위치: {mp['LOCATION']}")
-                       st.markdown(f"  - 태그: {mp.get('TAG', '없음')}")
-                       try:
-                           st.markdown(f"  - 거리: {float(mp['DIST_KM']):.2f} km")
-                       except (ValueError, TypeError):
-                           st.markdown("  - 거리: 알 수 없음")
+                if more_places.empty:
+                    st.info("📭 관련 장소가 없습니다.")
+                else:
+                    st.markdown(f"### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
+                    for _, mp in more_places.iterrows():
+                        st.markdown(f"- **{mp['NAME']}**")
+                        st.markdown(f"  - 위치: {mp['LOCATION']}")
+                        st.markdown(f"  - 태그: {mp.get('TAG', '없음')}")
+                        try:
+                            st.markdown(f"  - 거리: {float(mp['DIST_KM']):.2f} km")
+                        except (ValueError, TypeError):
+                            st.markdown("  - 거리: 알 수 없음")
 
         st.markdown("---")
 
