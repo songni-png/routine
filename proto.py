@@ -138,7 +138,7 @@ if sampled_df is not None:
         # ➕ 더보기 버튼 (2회차 이상)
         if click_count >= 2 and row["CATEGORY"] in top_cats:
             if st.button(f"[🔎 {row['CATEGORY']}] 관련 카테고리 더보기", key=f"more_{row['CATEGORY']}"):
-                more_places = filtered_df[(filtered_df["CATEGORY"] == row["CATEGORY"]) & (filtered_df["NAME"] != row["NAME"])]
+                more_places = filtered_df[(filtered_df["CATEGORY"] == row["CATEGORY"]) & (~filtered_df["NAME"].isin(sampled_df["NAME"]))]
                 more_places = more_places.sort_values("DIST_KM").head(3)
                 if more_places.empty:
                     st.info("📭 관련 장소가 없습니다.")
