@@ -97,7 +97,15 @@ sampled_df = st.session_state.get("recommendation")
 selected_place = st.session_state.get("selected_place")
 
 if sampled_df is not None:
+    weather = get_weather(lat, lon)
+    st.markdown(f"### 🌤️ 현재 위치 날씨")
+    st.write(f"- 날씨: {weather['weather']}")
+    st.write(f"- 기온: {weather['temp']}°C")
+    st.write(f"- 습도: {weather['humidity']}%")
+    st.markdown("---")
+
     st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
+    # 지도
     st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
     for _, row in sampled_df.iterrows():
@@ -110,7 +118,11 @@ if sampled_df is not None:
             st.session_state["selected_place"] = row['NAME']
             selected_place = row['NAME']
 
-
+        if selected_place == row['NAME']:
+            st.success(f"✅ '{row['NAME']}' 상세 내용")
+            st.write(f"- 위치: {row['LOCATION']}")
+            st.write(f"- 카테고리: {row['CATEGORY']}")
+            st.write(f"- 거리: {row['DIST_KM']:.2f} km")
         
 
             # 클릭 로그 저장
