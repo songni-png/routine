@@ -168,3 +168,4 @@ if os.path.exists(CLICK_FILE):
     st.markdown("## 🗂️ 내가 클릭한 장소 기록")
     log_df = pd.read_csv(CLICK_FILE)
     st.dataframe(log_df.tail(10))
+
