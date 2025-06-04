@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from streamlit_js_eval import streamlit_js_eval
 from geopy.distance import geodesic
+import joblib
 import requests
 import os
 
@@ -47,6 +48,10 @@ PLACE_FILE = os.path.join(current_dir, "장소_카테고리_최종분류.csv")
 CLICK_FILE = os.path.join(current_dir, "click_log.csv")
 MODEL_PATH = os.path.join(current_dir, "recovery_rf_model_v3.pkl")
 ENCODER_PATH = os.path.join(current_dir, "recovery_rf_encoders_v3.pkl")
+
+# 모델 및 인코더 로드
+model = joblib.load(MODEL_PATH)
+encoders = joblib.load(ENCODER_PATH)
 
 # ▶ 날씨 API 매핑 함수
 def map_weather(api_weather):
