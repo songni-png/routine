@@ -88,67 +88,65 @@ except Exception as e:
 def compute_distance(row):
     return geodesic((lat, lon), (row["LAT"], row["LON"])).km if lat and lon else None
 
-# ▶ 추천 버튼
-if st.button("🔮 회복 장소 추천받기") and lat and lon:
-    now = datetime.now()
-    hour = now.hour
-    time_slot = map_time(hour)
-    raw_weather = get_weather(lat, lon)
-    weather = map_weather(raw_weather)
+# ▶ 추천 버튼 동작
+if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
+    df["DIST_KM"] = df.apply(compute_distance, axis=1)
+    nearby_df = df[df["DIST_KM"] <= radius]
+    sampled_df = nearby_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1))
 
-    st.info(f"📡 현재 날씨: {raw_weather} → 매핑: {weather}, 시간대: {time_slot}")
+    if sampled_df.empty:
+        st.warning("❌ 조건에 맞는 장소가 없습니다.")
+    else:
+        st.session_state["recommendation"] = sampled_df
+        st.session_state["selected_place"] = None
 
-    # ▶ 예측 입력값 구성 및 인코딩
-    input_data = {"시간대": time_slot, "날씨": weather, "나이대": age_group, "직업": job_type}
-    
-    try:
-        for key in input_data:
-            input_data[key] = encoders[key].transform([input_data[key]])[0]
+# ▶ 추천 유지
+sampled_df = st.session_state.get("recommendation")
+selected_place = st.session_state.get("selected_place")
 
-        X_pred = pd.DataFrame([input_data])
-        predicted_tag = model.predict(X_pred)[0]
-        predicted_label = encoders["회복태그"].inverse_transform([predicted_tag])[0]
+if sampled_df is not None:
+    weather = get_weather(lat, lon)
+    st.markdown(f"### 🌤️ 현재 위치 날씨")
+    st.write(f"- 날씨: {weather['weather']}")
+    st.write(f"- 기온: {weather['temp']}°C")
+    st.write(f"- 습도: {weather['humidity']}%")
+    st.markdown("---")
 
-        st.success(f"🎯 예측된 회복 태그: **{predicted_label}**")
+    st.markdown(f"## 📌 반경 {radius:.1f}km 이내 추천 장소")
 
-        # ▶ 거리 필터 + 태그 필터
-        df["DIST_KM"] = df.apply(compute_distance, axis=1)
-        nearby_df = df[df["DIST_KM"] <= radius]
-        tag_df = nearby_df[nearby_df["TAG"].str.contains(predicted_label, case=False, na=False)]
+    for _, row in sampled_df.iterrows():
+        st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
+        st.markdown(f"- 📍 위치: {row['LOCATION']}")
+        st.markdown(f"- 🏷️ 태그: {row.get('TAG', '없음')}")
+        st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
 
-        if tag_df.empty:
-            st.warning("😢 해당 태그에 맞는 장소가 없습니다.")
-        else:
-            for _, row in tag_df.iterrows():
-                st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
-                st.markdown(f"- 📍 위치: {row['LOCATION']}")
-                st.markdown(f"- 🏷️ 태그: {row['TAG']}")
-                st.markdown(f"- 📏 거리: 약 {row['DIST_KM']:.2f} km")
+        if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
+            st.session_state["selected_place"] = row['NAME']
+            selected_place = row['NAME']
 
-                if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
-                    st.session_state["selected_place"] = row['NAME']
-                    selected_place = row['NAME']
+        if selected_place == row['NAME']:
+            st.success(f"✅ '{row['NAME']}' 상세 내용")
+            st.write(f"- 위치: {row['LOCATION']}")
+            st.write(f"- 카테고리: {row['CATEGORY']}")
+            st.write(f"- 거리: {row['DIST_KM']:.2f} km")
 
-                    if selected_place == row['NAME']:
-                        st.success(f"✅ '{row['NAME']}' 상세 내용")
-                        st.write(f"- 위치: {row['LOCATION']}")
-                        st.write(f"- 카테고리: {row['CATEGORY']}")
-                        st.write(f"- 거리: {row['DIST_KM']:.2f} km")
+            log = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "name": row['NAME'],
+                "category": row['CATEGORY'],
+                "location": row['LOCATION'],
+                "distance_km": round(row['DIST_KM'], 2)
+            }
+            pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
 
-                        log = {"timestamp": now.strftime("%Y-%m-%d %H:%M:%S"), "name": row['NAME'], "category": row['CATEGORY'], "location": row['LOCATION'], "distance_km": round(row['DIST_KM'], 2)}
-                        pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
+        st.markdown("---")
 
-                st.markdown("---")
-                
-                st.map(tag_df.rename(columns={"LAT": "lat", "LON": "lon"}))
+    st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
-    except ValueError as ve:
-        st.error(f"⚠️ 예측 중 오류 발생: {ve}")
-
-# ▶ 클릭 로그
+# ▶ 클릭 로그 확인 및 다운로드
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
-if os.path.exists(CLICK_FILE):
-    log_df = pd.read_csv(CLICK_FILE)
+if os.path.exists("click_log.csv"):
+    log_df = pd.read_csv("click_log.csv")
     st.dataframe(log_df.tail(10))
     csv = log_df.to_csv(index=False).encode('utf-8-sig')
     st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
