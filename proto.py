@@ -127,12 +127,6 @@ if sampled_df is not None:
         if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
             st.session_state["selected_place"] = row['NAME']
             selected_place = row['NAME']
-
-        if selected_place and selected_place == row['NAME']:
-            st.success(f"✅ '{row['NAME']}' 상세 내용")
-            st.write(f"- 위치: {row['LOCATION']}")
-            st.write(f"- 카테고리: {row['CATEGORY']}")
-            st.write(f"- 거리: {row['DIST_KM']:.2f} km")
             # 클릭 로그 기록 코드 추가
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
