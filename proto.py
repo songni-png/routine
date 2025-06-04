@@ -59,6 +59,29 @@ except Exception as e:
 def compute_distance(row):
     return geodesic((lat, lon), (row["LAT"], row["LON"])).km if lat and lon else None
 
+# ▶ 날씨 가져오기
+@st.cache_data
+def get_weather(lat, lon):
+    try:
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "appid": API_KEY,
+            "units": "metric",
+            "lang": "kr"
+        }
+        res = requests.get(url, params=params)
+        data = res.json()
+        return {
+            "weather": data["weather"][0]["description"],
+            "temp": data["main"]["temp"],
+            "humidity": data["main"]["humidity"]
+        }
+    except:
+        return {"weather": "에러", "temp": "-", "humidity": "-"}
+
+
 # ▶ 클릭 로그에서 인기 장소 찾기
 def get_top_clicked_places():
     if os.path.exists(CLICK_FILE):
