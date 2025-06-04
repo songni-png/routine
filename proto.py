@@ -64,16 +64,6 @@ def map_time(hour):
     elif 18 <= hour < 22: return "저녁"
     else: return "심야"
 
-# ▶ 날씨 API 요청
-@st.cache_data
-def get_weather(lat, lon):
-    try:
-        url = "https://api.openweathermap.org/data/2.5/weather"
-        params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "metric", "lang": "kr"}
-        res = requests.get(url, params=params)
-        return res.json()["weather"][0]["main"]
-    except:
-        return "Unknown"
 
 # ▶ 데이터 로드 및 열 정렬 수정
 try:
@@ -88,11 +78,37 @@ except Exception as e:
 def compute_distance(row):
     return geodesic((lat, lon), (row["LAT"], row["LON"])).km if lat and lon else None
 
+# ▶ 날씨 정보
+@st.cache_data
+def get_weather(lat, lon):
+    try:
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "appid": API_KEY,
+            "units": "metric",
+            "lang": "kr"
+        }
+        res = requests.get(url, params=params)
+        data = res.json()
+        return {
+            "weather": data["weather"][0]["description"],
+            "temp": data["main"]["temp"],
+            "humidity": data["main"]["humidity"]
+        }
+    except:
+        return {"weather": "에러", "temp": "-", "humidity": "-"}
+
 # ▶ 추천 버튼 동작
 if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
     df["DIST_KM"] = df.apply(compute_distance, axis=1)
     nearby_df = df[df["DIST_KM"] <= radius]
-    sampled_df = nearby_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1))
+
+    # 태그 필터링
+    filtered_df = nearby_df[nearby_df["TAG"].str.contains(tag, case=False)]
+
+    sampled_df = filtered_df.groupby("CATEGORY", group_keys=False).apply(lambda x: x.sample(1))
 
     if sampled_df.empty:
         st.warning("❌ 조건에 맞는 장소가 없습니다.")
@@ -137,7 +153,7 @@ if sampled_df is not None:
                 "location": row['LOCATION'],
                 "distance_km": round(row['DIST_KM'], 2)
             }
-            pd.DataFrame([log]).to_csv("click_log.csv", mode="a", index=False, header=not os.path.exists("click_log.csv"))
+            pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
 
         st.markdown("---")
 
@@ -145,10 +161,11 @@ if sampled_df is not None:
 
 # ▶ 클릭 로그 확인 및 다운로드
 st.markdown("## 🗂️ 내가 클릭한 장소 기록")
-if os.path.exists("click_log.csv"):
-    log_df = pd.read_csv("click_log.csv")
+if os.path.exists(CLICK_FILE):
+    log_df = pd.read_csv(CLICK_FILE)
     st.dataframe(log_df.tail(10))
     csv = log_df.to_csv(index=False).encode('utf-8-sig')
     st.download_button("📥 클릭 로그 CSV 다운로드", data=csv, file_name="click_log.csv", mime="text/csv")
 else:
     st.info("아직 클릭한 장소가 없어요. 위에서 장소를 선택해보세요!")
+
