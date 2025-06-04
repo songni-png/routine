@@ -6,7 +6,7 @@ from geopy.distance import geodesic
 import os
 
 # ▶ OpenWeatherMap API 키
-API_KEY = "YOUR_OPENWEATHER_API_KEY"
+API_KEY = "db993432d1b5f597ea03fd182d005ce9"
 
 # ▶ 페이지 설정
 st.set_page_config(page_title="회복 루틴 추천기", page_icon="🧘", layout="centered")
