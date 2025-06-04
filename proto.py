@@ -126,12 +126,6 @@ if sampled_df is not None:
         if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
             st.session_state["selected_place"] = row["NAME"]
 
-       
-            try:
-                st.write(f"- 거리: {float(row['DIST_KM']):.2f} km")
-            except (ValueError, TypeError):
-                st.write("- 거리: 알 수 없음")
-
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "name": row["NAME"],
