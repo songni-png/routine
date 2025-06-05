@@ -199,7 +199,8 @@ if os.path.exists(CLICK_FILE):
         user_place = pd.pivot_table(log_df, index="name", columns="category", aggfunc="size", fill_value=0)
         if user_place.shape[0] > 1:
            sim_scores = cosine_similarity(user_place, user_place)
-           sim_df = pd.DataFrame(sim_scores, index=user_place.index, columns=user_place.index)               recent = log_df["name"].iloc[-1]
+           sim_df = pd.DataFrame(sim_scores, index=user_place.index, columns=user_place.index)  
+           recent = log_df["name"].iloc[-1]
                if recent in sim_df.index:
                    recs = sim_df[recent].sort_values(ascending=False).drop(recent).head(3).index.tolist()
                    st.markdown("## 👥 당신과 비슷한 사람들이 자주 선택한 장소")
