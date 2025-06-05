@@ -149,7 +149,13 @@ if sampled_df is not None:
 
         # 🔍 상세 보기 버튼
         if st.button(f"🔍 {r} 상세 보기", key=f"detail_{index}"):  
-            st.session_state["selected_place"] = r
+            st.session_state["selected_place"] = row['NAME']
+            selected_place = row['NAME']
+            if selected_place == row['NAME']:
+                st.success(f"✅ '{row['NAME']}' 상세 내용")
+                st.write(f"- 위치: {row['LOCATION']}")
+                st.write(f"- 카테고리: {row['CATEGORY']}")
+                st.write(f"- 거리: {row['DIST_KM']:.2f} 
 
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
