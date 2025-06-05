@@ -148,23 +148,20 @@ if sampled_df is not None:
             st.markdown("- 거리: 알 수 없음")
 
         # 🔍 상세 보기 버튼
-        for index, row in enumerate(sampled_df.iterrows()):
-            if st.button(f"🔍 {row[1]['NAME']} 상세 보기", key=f"detail_{index}"): 
-                st.session_state["selected_place"] = row[1]['NAME']
-                selected_place = row[1]['NAME']
-                if selected_place == row[1]['NAME']:
-                    st.success(f"✅ '{row[1]['NAME']}' 상세 내용")
-                    st.write(f"- 위치: {row[1]['LOCATION']}")
-                    st.write(f"- 카테고리: {row[1]['CATEGORY']}")
-                    st.write(f"- 거리: {row[1]['DIST_KM']:.2f}")
+        for index, place_data in sampled_df.iterrows():
+            if st.button(f"🔍 {place_data['NAME']} 상세 보기", key=f"detail_{index}"):
+                st.session_state["selected_place"] = place_data['NAME']
+                st.success(f"✅ '{place_data['NAME']}' 상세 내용")
+                st.write(f"- 위치: {place_data['LOCATION']}")
+                st.write(f"- 카테고리: {place_data['CATEGORY']}")
+                st.write(f"- 거리: {place_data['DIST_KM']:.2f}")
 
-    
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "name": row[1]["NAME"],
-                "category": row["CATEGORY"],
-                "location": row["LOCATION"],
-                "distance_km": float(row["DIST_KM"]) if isinstance(row["DIST_KM"], (float, int)) else ""
+                "name": place_data["NAME"],
+                "category": place_data["CATEGORY"],
+                "location": place_data["LOCATION"],
+                "distance_km": float(place_data["DIST_KM"]) if isinstance(place_data["DIST_KM"], (float, int)) else ""
             }
             pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
 
