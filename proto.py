@@ -177,8 +177,9 @@ if sampled_df is not None:
                             st.markdown(f"#### 🏷️ {row_data['NAME']}")
                             st.markdown(f"📍 **위치:** {row_data['LOCATION']}")
                             st.markdown(f"🏷️ **태그:** {row_data.get('TAG', '없음')}")
-                            if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
-                                st.session_state["selected_place"] = row["NAME"]
+                            # 🔍 상세 보기 버튼 (중복 방지 key 추가)
+                            if st.button(f"🔍 {r} 상세 보기", key=f"detail_{index}"):  
+                                st.session_state["selected_place"] = r
                             
                             try:
                                 st.markdown(f"📏 **거리:** {float(row_data['DIST_KM']):.2f} km")
@@ -208,7 +209,9 @@ if os.path.exists(CLICK_FILE):
                 if recent in sim_df.index:
                     recs = sim_df[recent].sort_values(ascending=False).drop(recent).head(3).index.tolist()
                     st.markdown("## 👥 당신과 비슷한 사람들이 자주 선택한 장소")
+                    
                     cols = st.columns(len(recs))
+                    
                     for index,r in enumerate(recs):
                         info = df[df["NAME"] == r]
                         if not info.empty:
