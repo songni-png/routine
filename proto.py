@@ -163,15 +163,17 @@ if sampled_df is not None:
         # ➕ 더보기 버튼 (2회차 이상)
         if click_count >= 2 and row["CATEGORY"] in top_cats:
             if st.button(f"[🔎 {row['CATEGORY']}] 관련 카테고리 더보기", key=f"more_{row['CATEGORY']}"):
-                # ✅ 기존 추천 장소를 제외하고 추가 추천
-                more_places = filtered_df[(filtered_df["CATEGORY"].isin(similar_top_cats)) & (~filtered_df["NAME"].isin(sampled_df["NAME"]))]
-                more_places = more_places.sort_values("DIST_KM").head(3)
+                if similar_top_cats:
+                    more_places = filtered_df[(filtered_df["CATEGORY"].isin(similar_top_cats)) & (~filtered_df["NAME"].isin(sampled_df["NAME"]))]
+                    more_places = more_places.sort_values("DIST_KM").head(3)
+                
                 if more_places.empty:
                     st.info("📭 관련 장소가 없습니다.")
                 else:
                     st.markdown(f"#### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
                     cols = st.columns(len(more_places))
                     for index, mp in enumerate(more_places.iterrows()):
+                        row_data = mp[1]
                         with cols[index]:
                             if isinstance(mp, pd.Series): 
                                 st.markdown(f"#### 🏷️ {mp['NAME']}")
