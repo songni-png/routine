@@ -158,16 +158,7 @@ if sampled_df is not None:
                     st.write(f"- 카테고리: {row[1]['CATEGORY']}")
                     st.write(f"- 거리: {row[1]['DIST_KM']:.2f}")
 
-    log = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "name": row[1]["NAME"],
-        "category": row[1]["CATEGORY"],
-        "location": row[1]["LOCATION"],
-        "distance_km": float(row[1]["DIST_KM"]) if isinstance(row[1]["DIST_KM"], (float, int)) else ""
-    }
-    pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
-
-
+    
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "name": row["NAME"],
