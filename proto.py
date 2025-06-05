@@ -194,28 +194,32 @@ if os.path.exists(CLICK_FILE):
     log_df = pd.read_csv(CLICK_FILE)
     st.dataframe(log_df.tail(10))
 
-# 협업 추천
+    # 협업 추천
     if not log_df.empty and "name" in log_df.columns:
-        user_place = pd.pivot_table(log_df, index="name", columns="category", aggfunc="size", fill_value=0)
-        if user_place.shape[0] > 1:
-           sim_scores = cosine_similarity(user_place, user_place)
-           sim_df = pd.DataFrame(sim_scores, index=user_place.index, columns=user_place.index)  
-           recent = log_df["name"].iloc[-1]
-           if recent in sim_df.index:
-                recs = sim_df[recent].sort_values(ascending=False).drop(recent).head(3).index.tolist()
-                st.markdown("## 👥 당신과 비슷한 사람들이 자주 선택한 장소")
-                for r in recs:
-                    info = df[df["NAME"] == r]
-                    if not info.empty:
-                        info = info.iloc[0]
-                        st.markdown(f"### ⭐ {r}")
-                        st.markdown(f"- 카테고리: {info['CATEGORY']}")
-                        st.markdown(f"- 위치: {info['LOCATION']}")
-                        try:
-                           dist = compute_distance(info)
-                           st.markdown(f"- 거리: {dist:.2f} km")
-                        except:
-                           st.markdown("- 거리: 알 수 없음")
-                        st.markdown("---")
-    except Exception as e:
+        try:
+            user_place = pd.pivot_table(log_df, index="name", columns="category", aggfunc="size", fill_value=0)
+            if user_place.shape[0] > 1:
+                sim_scores = cosine_similarity(user_place, user_place)
+                sim_df = pd.DataFrame(sim_scores, index=user_place.index, columns=user_place.index)  
+                recent = log_df["name"].iloc[-1]
+                
+                if recent in sim_df.index:
+                    recs = sim_df[recent].sort_values(ascending=False).drop(recent).head(3).index.tolist()
+                    st.markdown("## 👥 당신과 비슷한 사람들이 자주 선택한 장소")
+                    
+                    for r in recs:
+                        info = df[df["NAME"] == r]
+                        if not info.empty:
+                            info = info.iloc[0]
+                            st.markdown(f"### ⭐ {r}")
+                            st.markdown(f"- 카테고리: {info['CATEGORY']}")
+                            st.markdown(f"- 위치: {info['LOCATION']}")
+                            
+                            try:
+                                dist = compute_distance(info)
+                                st.markdown(f"- 거리: {dist:.2f} km")
+                            except:
+                                st.markdown("- 거리: 알 수 없음")
+                            st.markdown("---")
+        except Exception as e:
         st.error(f"❌ 클릭 기록 테이블 불러오기 오류: {e}")
