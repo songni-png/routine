@@ -217,7 +217,7 @@ if os.path.exists(CLICK_FILE):
                         if not info.empty:
                             info = info.iloc[0]
                             with cols[index]:
-                                st.markdown(f"### ⭐ {r}")
+                                st.markdown(f"#### ⭐ {r}")
                                 st.markdown(f"- 카테고리: {info['CATEGORY']}")
                                 st.markdown(f"- 위치: {info['LOCATION']}")
                             
