@@ -201,21 +201,21 @@ if os.path.exists(CLICK_FILE):
            sim_scores = cosine_similarity(user_place, user_place)
            sim_df = pd.DataFrame(sim_scores, index=user_place.index, columns=user_place.index)  
            recent = log_df["name"].iloc[-1]
-               if recent in sim_df.index:
-                   recs = sim_df[recent].sort_values(ascending=False).drop(recent).head(3).index.tolist()
-                   st.markdown("## 👥 당신과 비슷한 사람들이 자주 선택한 장소")
-                   for r in recs:
-                       info = df[df["NAME"] == r]
-                       if not info.empty:
-                           info = info.iloc[0]
-                           st.markdown(f"### ⭐ {r}")
-                           st.markdown(f"- 카테고리: {info['CATEGORY']}")
-                           st.markdown(f"- 위치: {info['LOCATION']}")
-                           try:
-                               dist = compute_distance(info)
-                               st.markdown(f"- 거리: {dist:.2f} km")
-                           except:
-                               st.markdown("- 거리: 알 수 없음")
-                               st.markdown("---")
+           if recent in sim_df.index:
+                recs = sim_df[recent].sort_values(ascending=False).drop(recent).head(3).index.tolist()
+                st.markdown("## 👥 당신과 비슷한 사람들이 자주 선택한 장소")
+                for r in recs:
+                    info = df[df["NAME"] == r]
+                    if not info.empty:
+                        info = info.iloc[0]
+                        st.markdown(f"### ⭐ {r}")
+                        st.markdown(f"- 카테고리: {info['CATEGORY']}")
+                        st.markdown(f"- 위치: {info['LOCATION']}")
+                        try:
+                           dist = compute_distance(info)
+                           st.markdown(f"- 거리: {dist:.2f} km")
+                       except:
+                           st.markdown("- 거리: 알 수 없음")
+                          st.markdown("---")
     except Exception as e:
         st.error(f"❌ 클릭 기록 테이블 불러오기 오류: {e}")
