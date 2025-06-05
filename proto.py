@@ -150,13 +150,23 @@ if sampled_df is not None:
         # 🔍 상세 보기 버튼
         for index, row in enumerate(sampled_df.iterrows()):
             if st.button(f"🔍 {row[1]['NAME']} 상세 보기", key=f"detail_{index}"): 
-                st.session_state["selected_place"] = row['NAME']
-                selected_place = row['NAME']
-                if selected_place == row['NAME']:
-                    st.success(f"✅ '{row['NAME']}' 상세 내용")
-                    st.write(f"- 위치: {row['LOCATION']}")
-                    st.write(f"- 카테고리: {row['CATEGORY']}")
-                    st.write(f"- 거리: {row['DIST_KM']:.2f}")
+                st.session_state["selected_place"] = row[1]['NAME']
+                selected_place = row[1]['NAME']
+                if selected_place == row[1]['NAME']:
+                    st.success(f"✅ '{row[1]['NAME']}' 상세 내용")
+                    st.write(f"- 위치: {row[1]['LOCATION']}")
+                    st.write(f"- 카테고리: {row[1]['CATEGORY']}")
+                    st.write(f"- 거리: {row[1]['DIST_KM']:.2f}")
+
+    log = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "name": row[1]["NAME"],
+        "category": row[1]["CATEGORY"],
+        "location": row[1]["LOCATION"],
+        "distance_km": float(row[1]["DIST_KM"]) if isinstance(row[1]["DIST_KM"], (float, int)) else ""
+    }
+    pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
+
 
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
