@@ -149,7 +149,7 @@ if sampled_df is not None:
 
         # 🔍 상세 보기 버튼
         for index, row in enumerate(sampled_df.iterrows()):
-            if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{index}"): 
+            if st.button(f"🔍 {row[1]['NAME']} 상세 보기", key=f"detail_{index}"): 
                 st.session_state["selected_place"] = row['NAME']
                 selected_place = row['NAME']
                 if selected_place == row['NAME']:
