@@ -177,6 +177,8 @@ if sampled_df is not None:
                             st.markdown(f"#### 🏷️ {row_data['NAME']}")
                             st.markdown(f"📍 **위치:** {row_data['LOCATION']}")
                             st.markdown(f"🏷️ **태그:** {row_data.get('TAG', '없음')}")
+                            if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
+                                st.session_state["selected_place"] = row["NAME"]
                             
                             try:
                                 st.markdown(f"📏 **거리:** {float(row_data['DIST_KM']):.2f} km")
