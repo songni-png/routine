@@ -148,8 +148,8 @@ if sampled_df is not None:
             st.markdown("- 거리: 알 수 없음")
 
         # 🔍 상세 보기 버튼
-        if st.button(f"🔍 {row['NAME']} 상세 보기", key=f"detail_{row['NAME']}"):
-            st.session_state["selected_place"] = row["NAME"]
+        if st.button(f"🔍 {r} 상세 보기", key=f"detail_{index}"):  
+            st.session_state["selected_place"] = r
 
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
