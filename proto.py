@@ -222,4 +222,4 @@ if os.path.exists(CLICK_FILE):
                                 st.markdown("- 거리: 알 수 없음")
                             st.markdown("---")
         except Exception as e:
-        st.error(f"❌ 클릭 기록 테이블 불러오기 오류: {e}")
+            st.error(f"❌ 클릭 기록 테이블 불러오기 오류: {e}")
