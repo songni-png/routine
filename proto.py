@@ -161,7 +161,7 @@ if sampled_df is not None:
     
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "name": row["NAME"],
+                "name": row[1]["NAME"],
                 "category": row["CATEGORY"],
                 "location": row["LOCATION"],
                 "distance_km": float(row["DIST_KM"]) if isinstance(row["DIST_KM"], (float, int)) else ""
