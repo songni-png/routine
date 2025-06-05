@@ -155,7 +155,7 @@ if sampled_df is not None:
                 st.success(f"✅ '{row['NAME']}' 상세 내용")
                 st.write(f"- 위치: {row['LOCATION']}")
                 st.write(f"- 카테고리: {row['CATEGORY']}")
-                st.write(f"- 거리: {row['DIST_KM']:.2f} 
+                st.write(f"- 거리: {row['DIST_KM']:.2f})
 
             log = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
