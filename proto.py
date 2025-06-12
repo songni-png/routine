@@ -85,7 +85,7 @@ def get_similar_categories(category):
     return similar_cats
 
 try:
-    log_df = pd.read_csv(CLICK_FILE, encoding="utf-8-sig", on_bad_lines='skip')
+    log_df = pd.read_csv(CLICK_FILE, encoding="cp949", on_bad_lines='skip')
     top_cats_series = log_df['category'].value_counts().head(3)
     top_cats = top_cats_series.index.tolist()
     similar_top_cats = []
