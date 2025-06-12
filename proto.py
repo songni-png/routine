@@ -72,44 +72,37 @@ def get_weather(lat, lon):
     except:
         return {"weather": "에러", "temp": "-", "humidity": "-"}
 
-# ▶ TF-IDF 기반 코사인 유사도 계산
+# TF-IDF 유사도 계산
 df["feature_text"] = df["CATEGORY"] + " " + df["TAG"]
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(df["feature_text"])
 
-# ▶ 상위 카테고리와 유사한 카테고리 찾기
 def get_similar_categories(category):
     cat_index = df[df["CATEGORY"] == category].index[0]
     cat_vector = tfidf_matrix[cat_index]
     similarity_scores = cosine_similarity(cat_vector, tfidf_matrix).flatten()
-    
-    # 유사도가 높은 카테고리 찾기
     similar_cats = df.iloc[similarity_scores.argsort()[-4:-1][::-1]]["CATEGORY"].unique().tolist()
     return similar_cats
-    
-# 📊 클릭 로그 기반 상위 카테고리 분석
-if os.path.exists(CLICK_FILE):
-    log_df = pd.read_csv(CLICK_FILE)
+
+try:
+    log_df = pd.read_csv(CLICK_FILE, encoding="utf-8-sig", on_bad_lines='skip')
     top_cats_series = log_df['category'].value_counts().head(3)
     top_cats = top_cats_series.index.tolist()
-
-    # 📌 코사인 유사도를 이용한 추천 카테고리 추가
     similar_top_cats = []
     for cat in top_cats:
         similar_top_cats.extend(get_similar_categories(cat))
-
-    # 중복 제거
     similar_top_cats = list(set(similar_top_cats))
-else:
+except Exception as e:
+    st.error(f"❌ 클릭 로그 분석 중 오류: {e}")
     top_cats_series = pd.Series()
     top_cats = []
     similar_top_cats = []
-if not top_cats_series.empty:
-    st.markdown("### ⭐ 최다 선택 및 유사 카테고리")
-    for cat, count in top_cats_series.items():
-        st.markdown(f"- {cat} ({count}회 선택됨)")
 
-# 🎯 추천 버튼 동작
+if not top_cats_series.empty:
+    st.markdown("### ⭐ 자주 선택된 카테고리 및 유사 카테고리")
+    for cat, count in top_cats_series.items():
+        st.markdown(f"- {cat} (선택 {count}회)")
+
 if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
     df["DIST_KM"] = df.apply(compute_distance, axis=1)
     nearby_df = df[df["DIST_KM"] <= radius]
@@ -124,113 +117,99 @@ if st.button("카테고리별 랜덤 장소 추천받기") and lat and lon:
         st.session_state["filtered"] = nearby_df
         st.session_state["click_count"] = st.session_state.get("click_count", 0) + 1
 
-# 📋 세션 데이터 불러오기
 sampled_df = st.session_state.get("recommendation")
 filtered_df = st.session_state.get("filtered")
 click_count = st.session_state.get("click_count", 0)
 
-# 🌦 날씨 및 지도 출력
-if sampled_df is not None:
+if isinstance(sampled_df, pd.DataFrame) and not sampled_df.empty:
     weather = get_weather(lat, lon)
-    st.markdown("### 🌤️ 현재 위치 날씨")
-    st.write(f"- 날씨: {weather['weather']}")
+    st.markdown("### 🌤️ 현재 위치의 날씨")
+    st.write(f"- 날씨 상태: {weather['weather']}")
     st.write(f"- 기온: {weather['temp']}°C")
     st.write(f"- 습도: {weather['humidity']}%")
     st.map(sampled_df.rename(columns={"LAT": "lat", "LON": "lon"}))
 
     for _, row in sampled_df.iterrows():
-        st.markdown(f"### 🏷️ {row['CATEGORY']}: **{row['NAME']}**")
-        st.markdown(f"- 위치: {row['LOCATION']}")
-        st.markdown(f"- 태그: {row.get('TAG', '없음')}")
-        try:
-            st.markdown(f"- 거리: {float(row['DIST_KM']):.2f} km")
-        except (ValueError, TypeError):
-            st.markdown("- 거리: 알 수 없음")
+        with st.container():
+            st.markdown(f"#### 🏷️ **{row['NAME']}**")
+            st.markdown(f"**카테고리:** {row['CATEGORY']}")
+            st.markdown(f"📍 위치: {row['LOCATION']}")
+            st.markdown(f"🏷️ 태그: {row.get('TAG', '없음')}")
+            st.markdown(f"🧭 거리: {row['DIST_KM']:.2f} km")
 
-        # 🔍 상세 보기 버튼
-        for index, place_data in sampled_df.iterrows():
-            if st.button(f"🔍 {place_data['NAME']} 상세 보기", key=f"detail_{index}"):
-                st.session_state["selected_place"] = place_data['NAME']
-                st.success(f"✅ '{place_data['NAME']}' 상세 내용")
-                st.write(f"- 위치: {place_data['LOCATION']}")
-                st.write(f"- 카테고리: {place_data['CATEGORY']}")
-                st.write(f"- 거리: {place_data['DIST_KM']:.2f}")
+            col1, col2 = st.columns([1, 2])
 
-            log = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "name": place_data["NAME"],
-                "category": place_data["CATEGORY"],
-                "location": place_data["LOCATION"],
-                "distance_km": float(place_data["DIST_KM"]) if isinstance(place_data["DIST_KM"], (float, int)) else ""
-            }
-            pd.DataFrame([log]).to_csv(CLICK_FILE, mode="a", index=False, header=not os.path.exists(CLICK_FILE))
+            with col1:
+                if st.button(f"🔍 상세 보기", key=f"detail_{row['NAME']}"):
+                    # 중복 클릭 방지: 당일 이미 클릭한 경우 무시
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    if os.path.exists(CLICK_FILE):
+                        clicks_today = pd.read_csv(CLICK_FILE, encoding="utf-8-sig", on_bad_lines='skip')
+                        already_clicked = not clicks_today[
+                            (clicks_today["name"] == row["NAME"]) &
+                            (clicks_today["timestamp"].str.startswith(today))
+                        ].empty
+                    else:
+                        already_clicked = False
 
-        # ➕ 더보기 버튼 (2회차 이상)
-        if click_count >= 2 and row["CATEGORY"] in top_cats:
-            if st.button(f"[🔎 {row['CATEGORY']}] 관련 카테고리 더보기", key=f"more_{row['CATEGORY']}"):
-                if similar_top_cats:
-                    more_places = filtered_df[(filtered_df["CATEGORY"].isin(similar_top_cats)) & (~filtered_df["NAME"].isin(sampled_df["NAME"]))]
-                    more_places = more_places.sort_values("DIST_KM").head(3)
-                
-                if more_places.empty:
-                    st.info("📭 관련 장소가 없습니다.")
-                else:
-                    st.markdown(f"#### 🏷️ '{row['CATEGORY']}' 및 유사 카테고리 관련 추천 장소")
-                    cols = st.columns(len(more_places))
-                    for index, (idx, row_data) in enumerate(more_places.iterrows()):
-                        with cols[index]:
-                            st.markdown(f"#### 🏷️ {row_data['NAME']}")
-                            st.markdown(f"📍 **위치:** {row_data['LOCATION']}")
-                            st.markdown(f"🏷️ **태그:** {row_data.get('TAG', '없음')}")
-                            # 🔍 상세 보기 버튼 (중복 방지 key 추가)
-                            if st.button(f"🔍 {r} 상세 보기", key=f"detail_{index}"):  
-                                st.session_state["selected_place"] = r
-                            
-                            try:
-                                st.markdown(f"📏 **거리:** {float(row_data['DIST_KM']):.2f} km")
-                            except (ValueError, TypeError):
-                                st.markdown("📏 **거리:** 알 수 없음")
+                    if already_clicked:
+                        st.info(f"⚠️ 오늘 이미 '{row['NAME']}'을(를) 클릭하셨습니다.")
+                    else:
+                        new_log = {
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "user_id": "user1",
+                            "name": row["NAME"],
+                            "category": row["CATEGORY"]
+                        }
+                        pd.DataFrame([new_log]).to_csv(
+                            CLICK_FILE, mode="a", index=False,
+                            header=not os.path.exists(CLICK_FILE),
+                            encoding="utf-8-sig"
+                        )
+                        st.success(f"✅ '{row['NAME']}' 클릭 기록이 저장되었습니다.")
 
-
-        # 구분선 추가
+            with col2:
+                if click_count >= 2 and row["CATEGORY"] in top_cats:
+                    if st.button(f"[🔎 {row['CATEGORY']}] 관련 장소 더보기", key=f"more_{row['CATEGORY']}"):
+                        related_df = filtered_df[
+                            (filtered_df["CATEGORY"] == row["CATEGORY"]) & 
+                            (filtered_df["NAME"] != row["NAME"])
+                        ]
+                        st.markdown(f"##### 📌 반경 {radius}km 이내의 '{row['CATEGORY']}' 카테고리 장소:")
+                        if not related_df.empty:
+                            for _, r in related_df.iterrows():
+                                st.markdown(f"- **{r['NAME']}** ({r['LOCATION']}, {r['TAG']})")
+                        else:
+                            st.info("🚫 추가로 표시할 장소가 없습니다.")
         st.markdown("---")
+else:
+    st.info("⏳ 먼저 '카테고리별 랜덤 장소 추천받기' 버튼을 눌러주세요.")
 
-
-# 📜 클릭 로그 테이블
+# 협업 추천
 if os.path.exists(CLICK_FILE):
-    st.markdown("## 🗂️ 내가 클릭한 장소 기록")
-    log_df = pd.read_csv(CLICK_FILE)
-    st.dataframe(log_df.tail(10))
+    try:
+        log_df = pd.read_csv(CLICK_FILE, encoding="utf-8-sig", on_bad_lines='skip')
+        st.markdown("## 🗂️ 내가 클릭한 장소 기록")
+        st.dataframe(log_df.tail(10))
 
-    # 협업 추천
-    if not log_df.empty and "name" in log_df.columns:
-        try:
-            user_place = pd.pivot_table(log_df, index="name", columns="category", aggfunc="size", fill_value=0)
+        if not log_df.empty and "name" in log_df.columns:
+            user_place = pd.pivot_table(log_df, index="user_id", columns="name", aggfunc="size", fill_value=0)
             if user_place.shape[0] > 1:
                 sim_scores = cosine_similarity(user_place, user_place)
-                sim_df = pd.DataFrame(sim_scores, index=user_place.index, columns=user_place.index)  
-                recent = log_df["name"].iloc[-1]
-                
-                if recent in sim_df.index:
-                    recs = sim_df[recent].sort_values(ascending=False).drop(recent).head(3).index.tolist()
+                sim_df = pd.DataFrame(sim_scores, index=user_place.index, columns=user_place.index)
+                recent_user = log_df["user_id"].iloc[-1]
+                if recent_user in sim_df.index:
+                    recs = sim_df.loc[recent_user].sort_values(ascending=False).drop(recent_user).head(3).index.tolist()
+                    recommended_names = log_df[log_df["user_id"].isin(recs)]["name"].value_counts().head(3).index.tolist()
                     st.markdown("## 👥 당신과 비슷한 사람들이 자주 선택한 장소")
-                    
-                    cols = st.columns(len(recs))
-                    
-                    for index,r in enumerate(recs):
+                    for r in recommended_names:
                         info = df[df["NAME"] == r]
                         if not info.empty:
                             info = info.iloc[0]
-                            with cols[index]:
-                                st.markdown(f"#### ⭐ {r}")
-                                st.markdown(f"- 카테고리: {info['CATEGORY']}")
-                                st.markdown(f"- 위치: {info['LOCATION']}")
-                            
-                                try:
-                                    dist = compute_distance(info)
-                                    st.markdown(f"- 거리: {dist:.2f} km")
-                                except:
-                                    st.markdown("- 거리: 알 수 없음")
-                                st.markdown("---")
-        except Exception as e:
-            st.error(f"❌ 클릭 기록 테이블 불러오기 오류: {e}")
+                            st.markdown(f"### ⭐ {r}")
+                            st.markdown(f"- 카테고리: {info['CATEGORY']}")
+                            st.markdown(f"- 위치: {info['LOCATION']}")
+                            st.markdown(f"- 거리: {compute_distance(info):.2f} km")
+                            st.markdown("---")
+    except Exception as e:
+        st.error(f"❌ 클릭 기록 테이블 불러오기 오류: {e}")
